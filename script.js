@@ -11,34 +11,62 @@ function generateBB84Key() {
     addSystemMessage(`System: ${role} generated a Quantum Key.`);
 }
 
+let pendingMessage = ""; // Stores message while popup is open
+let pendingBinary = [];  // Stores binary while popup is open
+
 function sendMessage() {
     const input = document.getElementById('msg-input');
-    const message = input.value;
+    pendingMessage = input.value;
 
-    if (!message || !bb84Key) {
-        alert("You need a message and a BB84 Key!");
+    if (!pendingMessage || !bb84Key) {
+        alert("Generate a BB84 Key first!");
         return;
     }
 
-    // ENCRYPTION (From your "String to Binary.py" logic)
-    let encryptedBinary = [];
-    for (let i = 0; i < message.length; i++) {
-        let ascii = message.charCodeAt(i); 
-        let xored = ascii ^ bb84Key;       
-        encryptedBinary.push(xored.toString(2)); 
+    const modalBody = document.getElementById('modal-body');
+    const keyInfo = document.getElementById('key-info');
+    modalBody.innerHTML = ""; // Clear old data
+    pendingBinary = [];
+    
+    keyInfo.innerText = `Shared BB84 Key: ${bb84Key} (Binary: ${bb84Key.toString(2)})`;
+
+    // Process each character (Logic from your String to Binary.py)
+    for (let i = 0; i < pendingMessage.length; i++) {
+        let char = pendingMessage[i];
+        let ascii = char.charCodeAt(0);          // ASCII
+        let binary = ascii.toString(2).padStart(8, '0'); 
+        let xored = ascii ^ bb84Key;             // XOR Operation
+        let xorBinary = xored.toString(2).padStart(8, '0');
+
+        pendingBinary.push(xorBinary);
+
+        // Add row to popup table
+        let row = `<tr>
+            <td>'${char}'</td>
+            <td>${ascii}</td>
+            <td>${binary}</td>
+            <td>${ascii} ⊕ ${bb84Key}</td>
+            <td style="color:red; font-weight:bold;">${xorBinary}</td>
+        </tr>`;
+        modalBody.innerHTML += row;
     }
 
-    // Display locally
-    displayMessage(role, message, encryptedBinary.join(' '), 'sent');
+    // Show the popup
+    document.getElementById('conversionModal').style.display = "block";
+}
 
-    // SIMULATING THE SOCKET (From your "1 (1).py" and "2 (1).py" logic)
-    // To make this work across two PCs on GitHub, you'd usually use Firebase.
-    // For a local demo, we simulate the "Receiver" getting the data.
-    setTimeout(() => {
-        console.log("Data sent over 'Network' to Bob...");
-    }, 500);
+function confirmSend() {
+    // This actually puts the message in the chat after you see the popup
+    displayMessage('Alice', pendingMessage, pendingBinary.join(' '), 'sent');
+    closeModal();
+    document.getElementById('msg-input').value = "";
+    
+    // Simulate Bob receiving it
+    setTimeout(() => receiveMessage(pendingBinary), 1000);
+}
 
-    input.value = '';
+function closeModal() {
+    document.getElementById('conversionModal').style.display = "none";
 }
 
 function displayMessage(user, text, binary, type) {
