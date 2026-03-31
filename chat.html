@@ -7,6 +7,35 @@
 </head>
     
 <body>
+    <div class="role-selector" style="padding: 10px; border-bottom: 1px solid #ddd;">
+    <select id="user-role" onchange="setRole()">
+        <option value="Alice">I am Alice</option>
+        <option value="Bob">I am Bob</option>
+    </select>
+</div>
+
+<div id="conversionModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h2>Quantum Encryption Step-by-Step</h2>
+        <p id="key-info"></p>
+        <div class="table-container">
+            <table id="conversionTable">
+                <thead>
+                    <tr>
+                        <th>Char</th>
+                        <th>ASCII</th>
+                        <th>Binary</th>
+                        <th>XOR (Key)</th>
+                        <th>Result</th>
+                    </tr>
+                </thead>
+                <tbody id="modal-body"></tbody>
+            </table>
+        </div>
+        <button class="confirm-btn" onclick="confirmAndSend()">Confirm & Send to Network</button>
+    </div>
+</div>
     <div class="app-container">
         <aside class="sidebar">
             <div class="sidebar-header"><h3>Chats</h3></div>
