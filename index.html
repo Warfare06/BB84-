@@ -1,24 +1,16 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>BB84 Secure Chat</title>
+    <meta charset="UTF-8">
+    <title>BB84 Secure Login</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="login-body">
-
-<div class="login-box">
-    <h2>BB84 Secure Communication</h2>
-    <input type="text" id="username" placeholder="Enter Username">
-    <button onclick="login()">Enter Chat</button>
-</div>
-
-<script>
-function login() {
-    var user = document.getElementById("username").value;
-    localStorage.setItem("user", user);
-    window.location = "chat.html";
-}
-</script>
-
+    <div class="login-card">
+        <h2>Quantum Chat</h2>
+        <p>Secure BB84 Communication</p>
+        <input type="text" id="username" placeholder="Enter Username">
+        <button onclick="window.location.href='chat.html'">Login</button>
+    </div>
 </body>
 </html>
