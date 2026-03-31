@@ -2,43 +2,51 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>WhatsApp BB84</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp BB84 - Secure Chat</title>
     <link rel="stylesheet" href="style.css">
 </head>
-    
 <body>
-    <div class="role-selector" style="padding: 10px; border-bottom: 1px solid #ddd;">
-    <select id="user-role" onchange="setRole()">
-        <option value="Alice">I am Alice</option>
-        <option value="Bob">I am Bob</option>
-    </select>
-</div>
 
-<div id="conversionModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal()">&times;</span>
-        <h2>Quantum Encryption Step-by-Step</h2>
-        <p id="key-info"></p>
-        <div class="table-container">
-            <table id="conversionTable">
-                <thead>
-                    <tr>
-                        <th>Char</th>
-                        <th>ASCII</th>
-                        <th>Binary</th>
-                        <th>XOR (Key)</th>
-                        <th>Result</th>
-                    </tr>
-                </thead>
-                <tbody id="modal-body"></tbody>
-            </table>
+    <div id="conversionModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Quantum Encryption Step-by-Step</h2>
+            <p id="key-info" style="color: #128c7e; font-weight: bold;"></p>
+            
+            <div class="table-container">
+                <table id="conversionTable">
+                    <thead>
+                        <tr>
+                            <th>Char</th>
+                            <th>ASCII</th>
+                            <th>Binary</th>
+                            <th>XOR (Key)</th>
+                            <th>Final Result</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modal-body">
+                        </tbody>
+                </table>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <button class="confirm-btn" onclick="confirmAndSend()">Confirm & Send to Network</button>
+            </div>
         </div>
-        <button class="confirm-btn" onclick="confirmAndSend()">Confirm & Send to Network</button>
     </div>
-</div>
+
     <div class="app-container">
+        
         <aside class="sidebar">
-            <div class="sidebar-header"><h3>Chats</h3></div>
+            <div class="sidebar-header">
+                <h3>Chats</h3>
+                <select id="user-role" onchange="setRole()" style="width: 100%; margin-top: 10px; padding: 5px; border-radius: 5px;">
+                    <option value="Alice">I am Alice</option>
+                    <option value="Bob">I am Bob</option>
+                </select>
+            </div>
+            
             <div class="contact active">
                 <div class="avatar">B</div>
                 <div class="info"><strong>Bob</strong><br><small>Quantum Secured</small></div>
@@ -49,41 +57,22 @@
             </div>
         </aside>
 
-        
         <main class="chat-window">
             <header class="chat-header">
-                <h3>Bob</h3>
-                <span id="key-status">Key: None</span>
+                <h3 id="chat-with">Chatting with: Bob</h3>
+                <span id="key-status" style="font-family: monospace; background: #ddd; padding: 2px 8px; border-radius: 4px;">Key: None</span>
             </header>
+
             <div id="chat-box" class="chat-box"></div>
+
             <footer class="input-area">
                 <button class="bb84-btn" onclick="generateBB84Key()">Generate Key</button>
-                <input type="text" id="msg-input" placeholder="Type a message...">
+                <input type="text" id="msg-input" placeholder="Type a message..." onkeypress="if(event.key === 'Enter') sendMessage()">
                 <button class="send-btn" onclick="sendMessage()">Send</button>
             </footer>
         </main>
     </div>
-    <div id="conversionModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal()">&times;</span>
-        <h2>Quantum Encryption Process</h2>
-        <p id="key-info" style="color: #128c7e; font-weight: bold;"></p>
-        <table id="conversionTable">
-            <thead>
-                <tr>
-                    <th>Char</th>
-                    <th>ASCII</th>
-                    <th>Binary</th>
-                    <th>XOR Result</th>
-                    <th>Final Encrypted</th>
-                </tr>
-            </thead>
-            <tbody id="modal-body">
-                </tbody>
-        </table>
-        <button class="send-btn" onclick="confirmSend()">Confirm & Send</button>
-    </div>
-</div>
+
     <script src="script.js"></script>
 </body>
 </html>
