@@ -4,27 +4,21 @@
     <title>BB84 Secure Chat</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="login-body">
 
-<div class="container">
-    <div class="sidebar">
-
-        <h2>Contacts</h2>
-        <p>Alice</p>
-        <p>Bob</p>
-        <p>Eve</p>
-    </div>
-
-    <div class="chat">
-        <div class="messages" id="messages"></div>
-
-        <div class="input-box">
-            <input type="text" id="msg" placeholder="Type message...">
-            <button onclick="sendMessage()">Send</button>
-        </div>
-    </div>
+<div class="login-box">
+    <h2>BB84 Secure Communication</h2>
+    <input type="text" id="username" placeholder="Enter Username">
+    <button onclick="login()">Enter Chat</button>
 </div>
 
-<script src="script.js"></script>
+<script>
+function login() {
+    var user = document.getElementById("username").value;
+    localStorage.setItem("user", user);
+    window.location = "chat.html";
+}
+</script>
+
 </body>
 </html>
