@@ -7,6 +7,7 @@ function generateBB84Key() {
     alert("BB84 Protocol complete. Shared Secret Key established!");
 }
 
+
 // 2. Encryption: String to Binary + XOR (from your Python file)
 function sendMessage() {
     const input = document.getElementById('msg-input');
