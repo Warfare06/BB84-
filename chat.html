@@ -11,8 +11,8 @@
     <div id="conversionModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal()">&times;</span>
-            <h2 style="color: var(--teal-light);">Quantum Encryption Process</h2>
-            <p id="key-info"></p>
+            <h2 style="color: #00C2FF;">Quantum Encryption Process</h2>
+            <p id="key-info" style="color: #5BC0BE; font-weight: bold; margin-bottom: 15px;"></p>
             
             <div class="table-container">
                 <table id="conversionTable">
@@ -37,7 +37,7 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h3>Chats</h3>
-                <select id="user-role" onchange="setRole()" style="width: 100%; margin-top: 10px; background: #222; color: white; border: 1px solid var(--teal-main);">
+                <select id="user-role" onchange="setRole()" style="width: 100%; margin-top: 10px; background: #121212; color: #5BC0BE; border: 1px solid #00C2FF; border-radius: 5px; padding: 5px;">
                     <option value="Alice">I am Alice</option>
                     <option value="Bob">I am Bob</option>
                 </select>
@@ -45,22 +45,21 @@
             
             <div class="contact active">
                 <div class="avatar">B</div>
-                <div class="info"><strong>Bob</strong> <small>• Secured</small></div>
+                <div class="info"><strong>Bob</strong><small>• Secured</small></div>
             </div>
             <div class="contact">
-                <div class="avatar" style="background:#e74c3c">E</div>
-                <div class="info"><strong>Eve</strong> <small>• Offline</small></div>
+                <div class="avatar" style="background:#630d16">E</div>
+                <div class="info"><strong>Eve</strong><small>• Offline</small></div>
             </div>
         </aside>
 
         <main class="chat-window">
             <header class="chat-header">
                 <h3 id="chat-with">Chatting as: Alice</h3>
-                <span id="key-status">Key: None</span>
+                <span id="key-status" style="visibility: hidden;">Key: None</span>
             </header>
 
-            <div id="chat-box" class="chat-box">
-                </div>
+            <div id="chat-box" class="chat-box"></div>
 
             <footer class="input-area">
                 <button class="bb84-btn" onclick="generateBB84Key()">KEY GEN</button>
