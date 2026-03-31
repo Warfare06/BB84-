@@ -1,0 +1,45 @@
+body {
+    font-family: Arial;
+    background: #ece5dd;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 25%;
+    background: #075e54;
+    color: white;
+    padding: 20px;
+}
+
+.chat {
+    width: 75%;
+    display: flex;
+    flex-direction: column;
+}
+
+.messages {
+    flex: 1;
+    padding: 20px;
+    background: #e5ddd5;
+}
+
+.input-box {
+    display: flex;
+    padding: 10px;
+    background: white;
+}
+
+input {
+    flex: 1;
+    padding: 10px;
+}
+
+button {
+    padding: 10px;
+    background: #25d366;
+    border: none;
+}
