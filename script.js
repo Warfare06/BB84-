@@ -3,14 +3,14 @@ let currentRole = "Alice";
 let pendingText = "";
 let pendingBinary = [];
 
-// Ask for role on startup
+// Startup Role Selection
 window.onload = () => {
     let roleInput = prompt("Enter your role (Alice or Bob):", "Alice");
     currentRole = (roleInput && roleInput.toLowerCase() === 'bob') ? "Bob" : "Alice";
     document.getElementById('user-role').value = currentRole;
     document.getElementById('chat-with').innerText = `Chatting as: ${currentRole}`;
     
-    // Network Listener
+    // Listen for messages on the "Quantum Channel" (localStorage)
     window.addEventListener('storage', (event) => {
         if (event.key === 'quantum_chat_msg') {
             const data = JSON.parse(event.newValue);
@@ -24,16 +24,21 @@ function setRole() {
     document.getElementById('chat-with').innerText = `Chatting as: ${currentRole}`;
 }
 
+// BB84 Key Generation Simulation
 function generateBB84Key() {
     bb84Key = Math.floor(Math.random() * 255) + 1;
-    document.getElementById('key-status').innerText = `KEY: ${bb84Key} (${bb84Key.toString(2)})`;
+    const keyDisplay = document.getElementById('key-status');
+    keyDisplay.innerText = `KEY: ${bb84Key} (${bb84Key.toString(2).padStart(8, '0')})`;
+    keyDisplay.style.visibility = "visible";
     addSystemMessage(`System: ${currentRole} generated Quantum Key ${bb84Key}`);
 }
 
+// Encryption Process (Triggered by Send)
 function sendMessage() {
     const input = document.getElementById('msg-input');
     pendingText = input.value;
-    if (!pendingText || !bb84Key) { alert("Generate Key first!"); return; }
+    if (!pendingText) return;
+    if (!bb84Key) { alert("Generate a Quantum Key (BB84) first!"); return; }
 
     const modalBody = document.getElementById('modal-body');
     modalBody.innerHTML = ""; pendingBinary = [];
@@ -44,21 +49,28 @@ function sendMessage() {
         let xorBin = xored.toString(2).padStart(8, '0');
         pendingBinary.push(xorBin);
 
-        modalBody.innerHTML += `<tr><td>'${pendingText[i]}'</td><td>${ascii}</td><td>${ascii.toString(2)}</td><td>⊕ ${bb84Key}</td><td>${xorBin}</td></tr>`;
+        modalBody.innerHTML += `<tr>
+            <td>'${pendingText[i]}'</td>
+            <td>${ascii}</td>
+            <td style="color: gray;">${ascii.toString(2).padStart(8, '0')}</td>
+            <td>⊕ ${bb84Key}</td>
+            <td style="font-weight: bold;">${xorBin}</td>
+        </tr>`;
     }
     document.getElementById('conversionModal').style.display = "block";
 }
 
 function confirmAndSend() {
     const msgData = { sender: currentRole, binary: pendingBinary, timestamp: Date.now() };
-    localStorage.setItem('quantum_chat_msg', JSON.stringify(msgData));
+    localStorage.setItem('quantum_chat_msg', JSON.stringify(msgData)); // Simulates socket transmission
     displayMessage(currentRole, pendingText, pendingBinary.join(' '), 'sent');
     closeModal();
     document.getElementById('msg-input').value = "";
 }
 
+// Decryption Process (Binary back to String)
 function receiveFromNetwork(binaryArray, sender) {
-    if (!bb84Key) { addSystemMessage("Encrypted message received. No Key found!"); return; }
+    if (!bb84Key) { addSystemMessage("Encrypted data intercepted, but no Quantum Key found!"); return; }
     let decrypted = binaryArray.map(bin => String.fromCharCode(parseInt(bin, 2) ^ bb84Key)).join('');
     displayMessage(sender, decrypted, binaryArray.join(' '), 'received');
 }
@@ -67,16 +79,17 @@ function displayMessage(user, text, bin, type) {
     const box = document.getElementById('chat-box');
     const div = document.createElement('div');
     div.className = `message ${type}`;
-    div.innerHTML = `<strong>${user}</strong><br>${text}<span class="binary">Binary: ${bin}</span>`;
+    div.innerHTML = `<strong>${user}</strong><br>${text}<span class="binary">Encrypted: ${bin}</span>`;
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
 }
 
 function addSystemMessage(t) {
+    const box = document.getElementById('chat-box');
     const div = document.createElement('div');
     div.style = "text-align:center; font-size:11px; color:gray; margin:10px;";
     div.innerText = t;
-    document.getElementById('chat-box').appendChild(div);
+    box.appendChild(div);
 }
 
 function closeModal() { document.getElementById('conversionModal').style.display = "none"; }
