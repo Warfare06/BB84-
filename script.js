@@ -4,6 +4,39 @@ let currentRole = "Alice"; // Default role
 let pendingText = "";
 let pendingBinary = [];
 
+
+// --- 1. Startup Role Selection ---
+window.onload = () => {
+    // Clear any old role and ask fresh
+    let role = prompt("Welcome to Secure Quantum Chat. Enter your role (Alice or Bob):");
+    
+    // Default to Alice if they cancel or type gibberish
+    if (role && role.toLowerCase() === 'bob') {
+        currentRole = "Bob";
+    } else {
+        currentRole = "Alice";
+    }
+    
+    // Update the UI to show who is logged in
+    document.getElementById('user-role').value = currentRole;
+    document.getElementById('chat-with').innerText = `Chatting as: ${currentRole}`;
+    alert(`System: You are now logged in as ${currentRole}`);
+
+    // Start listening for network messages
+    initNetworkListener();
+};
+
+function initNetworkListener() {
+    window.addEventListener('storage', (event) => {
+        if (event.key === 'quantum_chat_msg') {
+            const data = JSON.parse(event.newValue);
+            if (data.sender !== currentRole) {
+                receiveFromNetwork(data.binary, data.sender);
+            }
+        }
+    });
+}
+
 // --- 2. Initialize: Setup Role & Network Listener ---
 window.onload = () => {
     // Check if role was previously saved, otherwise ask
