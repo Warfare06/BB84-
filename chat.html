@@ -1,33 +1,37 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Secure Chat</title>
+    <meta charset="UTF-8">
+    <title>WhatsApp BB84</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header"><h3>Chats</h3></div>
+            <div class="contact active">
+                <div class="avatar">B</div>
+                <div class="info"><strong>Bob</strong><br><small>Quantum Secured</small></div>
+            </div>
+            <div class="contact">
+                <div class="avatar" style="background:#e74c3c">E</div>
+                <div class="info"><strong>Eve</strong><br><small>Disconnected</small></div>
+            </div>
+        </aside>
 
-<div class="container">
-    <div class="sidebar">
-        <h2>Contacts</h2>
-        <p>Alice</p>
-        <p>Bob</p>
-        <p>Eve</p>
+        <main class="chat-window">
+            <header class="chat-header">
+                <h3>Bob</h3>
+                <span id="key-status">Key: None</span>
+            </header>
+            <div id="chat-box" class="chat-box"></div>
+            <footer class="input-area">
+                <button class="bb84-btn" onclick="generateBB84Key()">Generate Key</button>
+                <input type="text" id="msg-input" placeholder="Type a message...">
+                <button class="send-btn" onclick="sendMessage()">Send</button>
+            </footer>
+        </main>
     </div>
-
-    <div class="chat">
-        <div class="chat-header">
-            BB84 Secure Chat
-        </div>
-
-        <div class="messages" id="messages"></div>
-
-        <div class="input-box">
-            <input type="text" id="msg" placeholder="Type message...">
-            <button onclick="sendMessage()">Send</button>
-        </div>
-    </div>
-</div>
-
-<script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
