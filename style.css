@@ -1,8 +1,25 @@
 body {
+    margin: 0;
     font-family: Arial;
-    background: #ece5dd;
 }
 
+/* Login Page */
+.login-body {
+    background: #0b132b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.login-box {
+    background: white;
+    padding: 30px;
+    text-align: center;
+    border-radius: 10px;
+}
+
+/* Chat Layout */
 .container {
     display: flex;
     height: 100vh;
@@ -21,10 +38,18 @@ body {
     flex-direction: column;
 }
 
+.chat-header {
+    background: #128c7e;
+    color: white;
+    padding: 15px;
+    font-size: 20px;
+}
+
 .messages {
     flex: 1;
     padding: 20px;
     background: #e5ddd5;
+    overflow-y: auto;
 }
 
 .input-box {
