@@ -9,6 +9,24 @@ body { margin: 0; font-family: sans-serif; background: #dadbd3; height: 100vh; d
 .contact.active { background: #ebebeb; }
 .avatar { width: 45px; height: 45px; border-radius: 50%; background: #3498db; color: white; display: flex; align-items: center; justify-content: center; margin-right: 15px; }
 
+/* Modal (Background) */
+.modal {
+    display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+    width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);
+}
+
+/* Modal Content Box */
+.modal-content {
+    background-color: #fefefe; margin: 10% auto; padding: 20px;
+    border-radius: 10px; width: 80%; max-width: 700px; text-align: center;
+}
+
+/* Table Styling */
+table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+th { background-color: #128c7e; color: white; }
+
+.close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
 
 /* Chat Window */
 .chat-window { flex: 1; display: flex; flex-direction: column; background: #e5ddd5; }
