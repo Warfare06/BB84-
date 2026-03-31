@@ -12,3 +12,4 @@ function sendMessage() {
     messages.appendChild(bubble);
     document.getElementById("msg").value = "";
 }
+
