@@ -9,6 +9,7 @@ body { margin: 0; font-family: sans-serif; background: #dadbd3; height: 100vh; d
 .contact.active { background: #ebebeb; }
 .avatar { width: 45px; height: 45px; border-radius: 50%; background: #3498db; color: white; display: flex; align-items: center; justify-content: center; margin-right: 15px; }
 
+
 /* Chat Window */
 .chat-window { flex: 1; display: flex; flex-direction: column; background: #e5ddd5; }
 .chat-header { padding: 10px 20px; background: #ededed; display: flex; justify-content: space-between; align-items: center; }
