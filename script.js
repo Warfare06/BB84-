@@ -8,8 +8,9 @@ function sendMessage() {
     bubble.style.padding = "10px";
     bubble.style.margin = "5px";
     bubble.style.width = "fit-content";
+    bubble.style.borderRadius = "10px";
 
     messages.appendChild(bubble);
+
     document.getElementById("msg").value = "";
 }
-
