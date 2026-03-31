@@ -1,67 +1,220 @@
-/* General Layout */
-body { margin: 0; font-family: sans-serif; background: #dadbd3; height: 100vh; display: flex; align-items: center; justify-content: center; }
-.app-container { width: 90%; height: 90%; background: #ededed; display: flex; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-
-/* Sidebar */
-.sidebar { width: 30%; background: white; border-right: 1px solid #ddd; }
-.sidebar-header { padding: 20px; background: #ededed; border-bottom: 1px solid #ddd; }
-.contact { display: flex; padding: 15px; border-bottom: 1px solid #f2f2f2; cursor: pointer; }
-.contact.active { background: #ebebeb; }
-.avatar { width: 45px; height: 45px; border-radius: 50%; background: #3498db; color: white; display: flex; align-items: center; justify-content: center; margin-right: 15px; }
-
-/* Modal (Background) */
-.modal {
-    display: none; position: fixed; z-index: 1000; left: 0; top: 0;
-    width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);
+/* --- 1. Global Theme Variables --- */
+:root {
+    --cherry-dark: #3d050a;     /* Deep Background */
+    --cherry-main: #630d16;     /* Primary Accents/Header */
+    --teal-main: #008080;       /* Primary Action Color */
+    --teal-light: #00ced1;      /* Highlights/Binary Text */
+    --bg-dark: #0f0f0f;         /* Chat Area Background */
+    --bg-sidebar: #121212;      /* Sidebar Background */
+    --text-main: #e0e0e0;       /* General Text */
+    --text-dim: #a0a0a0;        /* Subtitles/Small Text */
 }
 
-/* Modal Content Box */
-.modal-content {
-    background-color: #fefefe; margin: 10% auto; padding: 20px;
-    border-radius: 10px; width: 80%; max-width: 700px; text-align: center;
+/* --- 2. General Layout --- */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body { 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    background: var(--cherry-dark); 
+    color: var(--text-main);
+    height: 100vh; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    overflow: hidden;
 }
 
-/* Table Styling */
-table { width: 100%; margin-top: 20px; border-collapse: collapse; }
-th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
-th { background-color: #128c7e; color: white; }
+.app-container { 
+    width: 95%; 
+    max-width: 1200px;
+    height: 90vh; 
+    background: #1a1a1a; 
+    display: flex; 
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5); 
+    border: 1px solid var(--teal-main);
+    border-radius: 8px;
+    overflow: hidden;
+}
 
-.close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+/* --- 3. Sidebar --- */
+.sidebar { 
+    width: 30%; 
+    background: var(--bg-sidebar); 
+    border-right: 1px solid var(--cherry-main); 
+    display: flex; 
+    flex-direction: column; 
+}
 
-/* Chat Window */
-.chat-window { flex: 1; display: flex; flex-direction: column; background: #e5ddd5; }
-.chat-header { padding: 10px 20px; background: #ededed; display: flex; justify-content: space-between; align-items: center; }
-.chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; }
+.sidebar-header { 
+    padding: 20px; 
+    background: var(--cherry-main); 
+    color: white; 
+    border-bottom: 1px solid var(--teal-main);
+}
 
-/* Bubbles */
-.message { max-width: 60%; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 14px; }
-.sent { align-self: flex-end; background: #dcf8c6; }
-.received { align-self: flex-start; background: white; }
-.binary { font-family: monospace; font-size: 10px; color: #666; display: block; margin-top: 5px; }
+.contact { 
+    display: flex; 
+    padding: 15px; 
+    border-bottom: 1px solid #222; 
+    cursor: pointer; 
+    transition: 0.3s; 
+}
 
-/* Input Area */
-.input-area { padding: 10px; background: #f0f0f0; display: flex; gap: 10px; }
-input { flex: 1; padding: 10px; border-radius: 20px; border: none; outline: none; }
-button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; }
-.bb84-btn { background: #34495e; color: white; }
-.send-btn { background: #128c7e; color: white; }
+.contact:hover { background: rgba(0, 128, 128, 0.1); }
 
-/* Login Page specific */
-.login-body { background: #128c7e; }
-.login-card { background: white; padding: 40px; border-radius: 10px; text-align: center; }
+.contact.active { 
+    background: rgba(0, 128, 128, 0.2); 
+    border-left: 4px solid var(--teal-light);
+}
 
-/* Modal Background */
-.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); }
+.avatar { 
+    width: 45px; height: 45px; border-radius: 50%; 
+    background: var(--teal-main); color: white; 
+    display: flex; align-items: center; justify-content: center; 
+    margin-right: 15px; font-weight: bold;
+}
 
-/* Modal Content */
-.modal-content { background: white; margin: 5% auto; padding: 20px; width: 80%; max-width: 800px; border-radius: 10px; animation: slideIn 0.3s; }
+/* --- 4. Chat Window --- */
+.chat-window { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); }
 
-@keyframes slideIn { from {transform: translateY(-50px); opacity: 0;} to {transform: translateY(0); opacity: 1;} }
+.chat-header { 
+    padding: 15px 20px; 
+    background: var(--cherry-main); 
+    color: white; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    border-bottom: 2px solid var(--teal-main);
+}
 
-.table-container { max-height: 400px; overflow-y: auto; margin: 20px 0; }
-table { width: 100%; border-collapse: collapse; }
-th, td { border: 1px solid #eee; padding: 10px; text-align: center; font-family: monospace; }
-th { background: #128c7e; color: white; }
+.chat-box { 
+    flex: 1; 
+    padding: 20px; 
+    overflow-y: auto; 
+    display: flex; 
+    flex-direction: column; 
+    background-image: linear-gradient(rgba(15, 15, 15, 0.9), rgba(15, 15, 15, 0.9)), url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+}
 
-.confirm-btn { background: #128c7e; color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-size: 16px; }
-.close { float: right; font-size: 24px; cursor: pointer; }
+/* --- 5. Message Bubbles --- */
+.message { 
+    max-width: 70%; 
+    padding: 10px 15px; 
+    border-radius: 12px; 
+    margin-bottom: 15px; 
+    font-size: 14px; 
+    line-height: 1.5;
+    position: relative;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.sent { 
+    align-self: flex-end; 
+    background: var(--teal-main); 
+    color: white; 
+    border-bottom-right-radius: 2px;
+}
+
+.received { 
+    align-self: flex-start; 
+    background: var(--cherry-main); 
+    color: white; 
+    border-bottom-left-radius: 2px;
+}
+
+.binary { 
+    font-family: 'Courier New', monospace; 
+    font-size: 11px; 
+    color: var(--teal-light); 
+    display: block; 
+    margin-top: 8px; 
+    padding: 5px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    border-left: 2px solid var(--teal-light);
+}
+
+/* --- 6. Input Area --- */
+.input-area { 
+    padding: 15px; 
+    background: #121212; 
+    display: flex; 
+    gap: 12px; 
+    border-top: 1px solid var(--teal-main);
+}
+
+input#msg-input { 
+    flex: 1; 
+    padding: 12px 20px; 
+    border-radius: 25px; 
+    border: 1px solid var(--cherry-main); 
+    background: #222;
+    color: white;
+    outline: none; 
+}
+
+input#msg-input:focus { border-color: var(--teal-light); }
+
+button { 
+    padding: 10px 18px; 
+    border: none; 
+    border-radius: 5px; 
+    cursor: pointer; 
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.bb84-btn { background: var(--cherry-main); color: white; border: 1px solid var(--teal-main); }
+.bb84-btn:hover { background: #80131d; }
+
+.send-btn { background: var(--teal-main); color: white; }
+.send-btn:hover { background: var(--teal-light); color: black; }
+
+/* --- 7. Modal (Encryption Popup) --- */
+.modal { 
+    display: none; 
+    position: fixed; 
+    z-index: 9999; 
+    left: 0; top: 0; 
+    width: 100%; height: 100%; 
+    background: rgba(0, 0, 0, 0.85); 
+    backdrop-filter: blur(5px);
+}
+
+.modal-content { 
+    background: #1a1a1a; 
+    margin: 5% auto; 
+    padding: 30px; 
+    width: 90%; 
+    max-width: 800px; 
+    border-radius: 15px; 
+    border: 2px solid var(--teal-main);
+    box-shadow: 0 0 40px rgba(0, 128, 128, 0.4);
+    animation: zoomIn 0.3s ease-out;
+}
+
+@keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.table-container { 
+    max-height: 400px; 
+    overflow-y: auto; 
+    margin: 20px 0; 
+    border: 1px solid #333;
+}
+
+table { width: 100%; border-collapse: collapse; background: #111; }
+th, td { border: 1px solid #333; padding: 12px; text-align: center; }
+th { background: var(--cherry-main); color: white; font-size: 12px; }
+td { color: var(--teal-light); font-family: monospace; }
+
+.close { float: right; font-size: 32px; color: var(--text-dim); cursor: pointer; }
+.close:hover { color: var(--teal-light); }
+
+.confirm-btn { 
+    background: var(--teal-main); 
+    color: white; 
+    width: 100%; 
+    padding: 15px; 
+    font-size: 16px; 
+    margin-top: 10px;
+}
