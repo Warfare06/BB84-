@@ -1,220 +1,170 @@
-/* --- 1. Global Theme Variables --- */
+/* --- 1. Global Variables & Root --- */
 :root {
-    --cherry-dark: #3d050a;     /* Deep Background */
-    --cherry-main: #630d16;     /* Primary Accents/Header */
-    --teal-main: #008080;       /* Primary Action Color */
-    --teal-light: #00ced1;      /* Highlights/Binary Text */
-    --bg-dark: #0f0f0f;         /* Chat Area Background */
-    --bg-sidebar: #121212;      /* Sidebar Background */
-    --text-main: #e0e0e0;       /* General Text */
-    --text-dim: #a0a0a0;        /* Subtitles/Small Text */
+    --cherry-main: #630d16;
+    --cherry-glow: #8b0a1a;
+    --teal-main: #008080;
+    --teal-glow: #00ced1;
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --text-white: #ffffff;
 }
 
-/* --- 2. General Layout --- */
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
+/* --- 2. Dynamic Background --- */
 body { 
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-    background: var(--cherry-dark); 
-    color: var(--text-main);
-    height: 100vh; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: radial-gradient(circle at center, #2e0509 0%, #0f0f0f 100%);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-white);
     overflow: hidden;
 }
 
+/* --- 3. Glassmorphism Container --- */
 .app-container { 
     width: 95%; 
     max-width: 1200px;
     height: 90vh; 
-    background: #1a1a1a; 
-    display: flex; 
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5); 
-    border: 1px solid var(--teal-main);
-    border-radius: 8px;
-    overflow: hidden;
+    background: rgba(20, 20, 20, 0.6);
+    backdrop-filter: blur(15px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    display: flex;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), inset 0 0 0 1px var(--glass-border);
+    animation: fadeIn 0.8s ease-out;
 }
 
-/* --- 3. Sidebar --- */
+/* --- 4. Sidebar --- */
 .sidebar { 
     width: 30%; 
-    background: var(--bg-sidebar); 
-    border-right: 1px solid var(--cherry-main); 
-    display: flex; 
-    flex-direction: column; 
+    background: rgba(0, 0, 0, 0.3);
+    border-right: 1px solid var(--glass-border);
 }
 
 .sidebar-header { 
-    padding: 20px; 
-    background: var(--cherry-main); 
-    color: white; 
-    border-bottom: 1px solid var(--teal-main);
+    padding: 25px;
+    background: linear-gradient(135deg, var(--cherry-main), #3d050a);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
-
-.contact { 
-    display: flex; 
-    padding: 15px; 
-    border-bottom: 1px solid #222; 
-    cursor: pointer; 
-    transition: 0.3s; 
-}
-
-.contact:hover { background: rgba(0, 128, 128, 0.1); }
 
 .contact.active { 
-    background: rgba(0, 128, 128, 0.2); 
-    border-left: 4px solid var(--teal-light);
+    background: linear-gradient(90deg, rgba(0, 128, 128, 0.2), transparent);
+    border-left: 4px solid var(--teal-glow);
 }
 
-.avatar { 
-    width: 45px; height: 45px; border-radius: 50%; 
-    background: var(--teal-main); color: white; 
-    display: flex; align-items: center; justify-content: center; 
-    margin-right: 15px; font-weight: bold;
-}
-
-/* --- 4. Chat Window --- */
-.chat-window { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); }
-
-.chat-header { 
-    padding: 15px 20px; 
-    background: var(--cherry-main); 
-    color: white; 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    border-bottom: 2px solid var(--teal-main);
-}
-
-.chat-box { 
-    flex: 1; 
-    padding: 20px; 
-    overflow-y: auto; 
-    display: flex; 
-    flex-direction: column; 
-    background-image: linear-gradient(rgba(15, 15, 15, 0.9), rgba(15, 15, 15, 0.9)), url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-}
-
-/* --- 5. Message Bubbles --- */
+/* --- 5. Glossy Chat Bubbles --- */
 .message { 
     max-width: 70%; 
-    padding: 10px 15px; 
-    border-radius: 12px; 
+    padding: 12px 18px; 
+    border-radius: 15px; 
     margin-bottom: 15px; 
-    font-size: 14px; 
-    line-height: 1.5;
+    font-size: 14px;
     position: relative;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    overflow: hidden; /* Needed for shine effect */
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+}
+
+/* The Gloss Shine Effect */
+.message::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+    transform: rotate(45deg);
+    animation: shine 4s infinite;
 }
 
 .sent { 
     align-self: flex-end; 
-    background: var(--teal-main); 
-    color: white; 
-    border-bottom-right-radius: 2px;
+    background: linear-gradient(135deg, var(--teal-main), #004d4d);
+    box-shadow: 0 4px 15px rgba(0, 128, 128, 0.3);
 }
 
 .received { 
     align-self: flex-start; 
-    background: var(--cherry-main); 
-    color: white; 
-    border-bottom-left-radius: 2px;
+    background: linear-gradient(135deg, var(--cherry-main), #3d050a);
+    box-shadow: 0 4px 15px rgba(99, 13, 22, 0.3);
 }
 
-.binary { 
-    font-family: 'Courier New', monospace; 
-    font-size: 11px; 
-    color: var(--teal-light); 
-    display: block; 
-    margin-top: 8px; 
-    padding: 5px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 4px;
-    border-left: 2px solid var(--teal-light);
-}
-
-/* --- 6. Input Area --- */
-.input-area { 
-    padding: 15px; 
-    background: #121212; 
-    display: flex; 
-    gap: 12px; 
-    border-top: 1px solid var(--teal-main);
-}
-
-input#msg-input { 
-    flex: 1; 
-    padding: 12px 20px; 
-    border-radius: 25px; 
-    border: 1px solid var(--cherry-main); 
-    background: #222;
-    color: white;
-    outline: none; 
-}
-
-input#msg-input:focus { border-color: var(--teal-light); }
-
-button { 
-    padding: 10px 18px; 
-    border: none; 
-    border-radius: 5px; 
-    cursor: pointer; 
+/* --- 6. Animated Buttons --- */
+button {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    text-transform: uppercase;
     font-weight: bold;
-    transition: 0.3s;
+    letter-spacing: 1px;
 }
 
-.bb84-btn { background: var(--cherry-main); color: white; border: 1px solid var(--teal-main); }
-.bb84-btn:hover { background: #80131d; }
-
-.send-btn { background: var(--teal-main); color: white; }
-.send-btn:hover { background: var(--teal-light); color: black; }
-
-/* --- 7. Modal (Encryption Popup) --- */
-.modal { 
-    display: none; 
-    position: fixed; 
-    z-index: 9999; 
-    left: 0; top: 0; 
-    width: 100%; height: 100%; 
-    background: rgba(0, 0, 0, 0.85); 
-    backdrop-filter: blur(5px);
+.send-btn, .confirm-btn {
+    background: var(--teal-main);
+    color: white;
 }
 
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 206, 209, 0.4);
+}
+
+/* --- 7. Modal Glass UI --- */
 .modal-content { 
-    background: #1a1a1a; 
-    margin: 5% auto; 
-    padding: 30px; 
-    width: 90%; 
-    max-width: 800px; 
-    border-radius: 15px; 
-    border: 2px solid var(--teal-main);
-    box-shadow: 0 0 40px rgba(0, 128, 128, 0.4);
-    animation: zoomIn 0.3s ease-out;
+    background: rgba(25, 25, 25, 0.9);
+    backdrop-filter: blur(25px);
+    border: 1px solid var(--teal-glow);
+    border-radius: 25px;
+    padding: 40px;
+    animation: modalPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-@keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-.table-container { 
-    max-height: 400px; 
-    overflow-y: auto; 
-    margin: 20px 0; 
-    border: 1px solid #333;
+table {
+    border-collapse: separate;
+    border-spacing: 0 8px;
 }
 
-table { width: 100%; border-collapse: collapse; background: #111; }
-th, td { border: 1px solid #333; padding: 12px; text-align: center; }
-th { background: var(--cherry-main); color: white; font-size: 12px; }
-td { color: var(--teal-light); font-family: monospace; }
+td {
+    background: rgba(255, 255, 255, 0.03);
+    border: none;
+    padding: 15px;
+}
 
-.close { float: right; font-size: 32px; color: var(--text-dim); cursor: pointer; }
-.close:hover { color: var(--teal-light); }
+/* --- 8. Keyframe Animations --- */
+@keyframes shine {
+    0% { transform: translateX(-150%) rotate(45deg); }
+    20% { transform: translateX(150%) rotate(45deg); }
+    100% { transform: translateX(150%) rotate(45deg); }
+}
 
-.confirm-btn { 
-    background: var(--teal-main); 
-    color: white; 
-    width: 100%; 
-    padding: 15px; 
-    font-size: 16px; 
-    margin-top: 10px;
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes modalPop {
+    from { opacity: 0; transform: scale(0.8) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* --- 9. Inputs --- */
+input#msg-input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: white;
+    padding: 12px 25px;
+    border-radius: 30px;
+    transition: all 0.3s;
+}
+
+input#msg-input:focus {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--teal-glow);
+    outline: none;
+    box-shadow: 0 0 15px rgba(0, 206, 209, 0.2);
 }
