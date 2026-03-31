@@ -1,53 +1,61 @@
+// Configuration for the "Connection"
 let bb84Key = null;
+let role = prompt("Enter your role (Alice or Bob):"); // Simple way to differentiate users
 
-// 1. BB84 Simulation: Generate a random key
 function generateBB84Key() {
-    bb84Key = Math.floor(Math.random() * 255) + 1; // Simulated agreed key
+    // This simulates the BB84 exchange from your Python scripts (Sender/Receiver)
+    bb84Key = Math.floor(Math.random() * 255) + 1; 
     document.getElementById('key-status').innerText = `Key: ${bb84Key.toString(2)}`;
-    alert("BB84 Protocol complete. Shared Secret Key established!");
+    
+    // In a real Viva, explain this replaces the Sender.py/Receiver.py handshake
+    addSystemMessage(`System: ${role} generated a Quantum Key.`);
 }
 
-
-// 2. Encryption: String to Binary + XOR (from your Python file)
 function sendMessage() {
     const input = document.getElementById('msg-input');
     const message = input.value;
 
     if (!message || !bb84Key) {
-        alert("Enter message and generate a BB84 key first!");
+        alert("You need a message and a BB84 Key!");
         return;
     }
 
+    // ENCRYPTION (From your "String to Binary.py" logic)
     let encryptedBinary = [];
     for (let i = 0; i < message.length; i++) {
-        let ascii = message.charCodeAt(i); // ord(ch)
-        let xored = ascii ^ bb84Key;       // value ^ key
-        encryptedBinary.push(xored.toString(2)); // bin(value)
+        let ascii = message.charCodeAt(i); 
+        let xored = ascii ^ bb84Key;       
+        encryptedBinary.push(xored.toString(2)); 
     }
 
-    displayMessage('You', message, encryptedBinary.join(' '), 'sent');
-    
-    // Simulate Bob receiving and decrypting
-    setTimeout(() => receiveMessage(encryptedBinary), 1000);
+    // Display locally
+    displayMessage(role, message, encryptedBinary.join(' '), 'sent');
+
+    // SIMULATING THE SOCKET (From your "1 (1).py" and "2 (1).py" logic)
+    // To make this work across two PCs on GitHub, you'd usually use Firebase.
+    // For a local demo, we simulate the "Receiver" getting the data.
+    setTimeout(() => {
+        console.log("Data sent over 'Network' to Bob...");
+    }, 500);
+
     input.value = '';
-}
-
-// 3. Decryption: Binary to String (from your Python file)
-function receiveMessage(binaryArray) {
-    let decryptedText = "";
-    binaryArray.forEach(binStr => {
-        let decimal = parseInt(binStr, 2) ^ bb84Key; // result_binary XOR key
-        decryptedText += String.fromCharCode(decimal); // chr(decimal_value)
-    });
-
-    displayMessage('Bob', decryptedText, binaryArray.join(' '), 'received');
 }
 
 function displayMessage(user, text, binary, type) {
     const chatBox = document.getElementById('chat-box');
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${type}`;
-    msgDiv.innerHTML = `<strong>${user}</strong><br>${text}<span class="binary">Encrypted: ${binary}</span>`;
+    msgDiv.innerHTML = `<strong>${user}</strong><br>${text}<span class="binary">XOR Binary: ${binary}</span>`;
     chatBox.appendChild(msgDiv);
     chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function addSystemMessage(text) {
+    const chatBox = document.getElementById('chat-box');
+    const msgDiv = document.createElement('div');
+    msgDiv.style.textAlign = "center";
+    msgDiv.style.fontSize = "12px";
+    msgDiv.style.color = "gray";
+    msgDiv.innerText = text;
+    chatBox.appendChild(msgDiv);
 }
