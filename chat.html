@@ -33,6 +33,27 @@
             </footer>
         </main>
     </div>
+    <div id="conversionModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h2>Quantum Encryption Process</h2>
+        <p id="key-info" style="color: #128c7e; font-weight: bold;"></p>
+        <table id="conversionTable">
+            <thead>
+                <tr>
+                    <th>Char</th>
+                    <th>ASCII</th>
+                    <th>Binary</th>
+                    <th>XOR Result</th>
+                    <th>Final Encrypted</th>
+                </tr>
+            </thead>
+            <tbody id="modal-body">
+                </tbody>
+        </table>
+        <button class="send-btn" onclick="confirmSend()">Confirm & Send</button>
+    </div>
+</div>
     <script src="script.js"></script>
 </body>
 </html>
