@@ -16,12 +16,13 @@ const database = firebase.database();
 // --- 2. GLOBAL VARIABLES ---
 let bb84Key = null;
 let currentRole = "Alice";
+let currentServer = "server_1"; // Tracks which room you are in
 let pendingText = "";
 let pendingBinary = [];
 let incomingData = null; 
-let typingTimer = null; // For the typing indicator
+let typingTimer = null; 
 
-// --- 3. STARTUP & CLOUD LISTENERS ---
+// --- 3. STARTUP & SERVER MANAGEMENT ---
 window.onload = () => {
     let roleInput = prompt("Enter your role (Alice or Bob):", "Alice");
     currentRole = (roleInput && roleInput.toLowerCase() === 'bob') ? "Bob" : "Alice";
@@ -29,27 +30,74 @@ window.onload = () => {
     document.getElementById('user-role').value = currentRole;
     document.getElementById('chat-with').innerText = `Chatting as: ${currentRole}`;
 
-    // Listener 1: Quantum Channel (Keys)
-    database.ref('quantum_channel/keys').on('child_added', (snapshot) => {
+    // Attach listeners for the default server on load
+    attachFirebaseListeners();
+
+    // Detect when YOU are typing
+    document.getElementById('msg-input').addEventListener('input', () => {
+        database.ref(`servers/${currentServer}/typing_status/${currentRole}`).set(true);
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(() => {
+            database.ref(`servers/${currentServer}/typing_status/${currentRole}`).set(false);
+        }, 1500);
+    });
+};
+
+function setRole() {
+    currentRole = document.getElementById('user-role').value;
+    document.getElementById('chat-with').innerText = `Chatting as: ${currentRole}`;
+    location.reload(); 
+}
+
+// THE NEW SERVER SWITCHING FUNCTION
+function switchServer() {
+    // 1. Turn off listeners for the OLD server so messages don't bleed over
+    database.ref(`servers/${currentServer}/keys`).off();
+    database.ref(`servers/${currentServer}/messages`).off();
+    
+    const otherRole = currentRole === "Alice" ? "Bob" : "Alice";
+    database.ref(`servers/${currentServer}/typing_status/${otherRole}`).off();
+
+    // 2. Update to the NEW server
+    currentServer = document.getElementById('server-select').value;
+
+    // 3. Wipe the UI clean for the new room
+    document.getElementById('chat-box').innerHTML = "";
+    bb84Key = null; // New server = new quantum key needed
+    document.getElementById('key-status').style.visibility = "hidden";
+    document.getElementById('typing-indicator').style.display = "none";
+
+    let displayServerName = document.getElementById('server-select').options[document.getElementById('server-select').selectedIndex].text;
+    addSystemMessage(`Switched to ${displayServerName}. Awaiting Quantum Key Generation...`);
+
+    // 4. Attach listeners to the NEW server
+    attachFirebaseListeners();
+}
+
+// Master function to listen to the CURRENT server
+function attachFirebaseListeners() {
+    const otherRole = currentRole === "Alice" ? "Bob" : "Alice";
+
+    // Listen for Keys in this specific server
+    database.ref(`servers/${currentServer}/keys`).on('child_added', (snapshot) => {
         const data = snapshot.val();
         if (data.sender !== currentRole) {
             bb84Key = data.key;
             updateKeyUI(bb84Key);
-            addSystemMessage(`System: Received Quantum Key from ${data.sender} via Cloud`);
+            addSystemMessage(`System: Received Quantum Key from ${data.sender} in ${currentServer}`);
         }
     });
 
-    // Listener 2: Classical Channel (Messages)
-    database.ref('quantum_channel/messages').on('child_added', (snapshot) => {
+    // Listen for Messages in this specific server
+    database.ref(`servers/${currentServer}/messages`).on('child_added', (snapshot) => {
         const data = snapshot.val();
         if (data.sender !== currentRole) {
             receiveFromNetwork(data.binary, data.sender);
         }
     });
 
-    // Listener 3: Typing Status
-    const otherRole = currentRole === "Alice" ? "Bob" : "Alice";
-    database.ref('quantum_channel/typing_status/' + otherRole).on('value', (snapshot) => {
+    // Listen for Typing Status in this specific server
+    database.ref(`servers/${currentServer}/typing_status/${otherRole}`).on('value', (snapshot) => {
         const isTyping = snapshot.val();
         const indicator = document.getElementById('typing-indicator');
         
@@ -62,23 +110,6 @@ window.onload = () => {
             indicator.style.display = "none";
         }
     });
-
-    // Detect when YOU are typing
-    document.getElementById('msg-input').addEventListener('input', () => {
-        database.ref('quantum_channel/typing_status/' + currentRole).set(true);
-        clearTimeout(typingTimer);
-        typingTimer = setTimeout(() => {
-            database.ref('quantum_channel/typing_status/' + currentRole).set(false);
-        }, 1500);
-    });
-};
-
-function setRole() {
-    currentRole = document.getElementById('user-role').value;
-    document.getElementById('chat-with').innerText = `Chatting as: ${currentRole}`;
-    
-    // Refresh page so listeners bind correctly to new role
-    location.reload(); 
 }
 
 // --- 4. KEY GENERATION (Quantum Simulation) ---
@@ -87,7 +118,8 @@ function generateBB84Key() {
     updateKeyUI(bb84Key);
     addSystemMessage(`System: You generated Quantum Key ${bb84Key}`);
 
-    database.ref('quantum_channel/keys').push({
+    // Push to the specific server path
+    database.ref(`servers/${currentServer}/keys`).push({
         sender: currentRole,
         key: bb84Key,
         time: Date.now()
@@ -136,10 +168,11 @@ function confirmAndSend() {
         time: Date.now() 
     };
 
-    database.ref('quantum_channel/messages').push(msgData);
+    // Push message to the specific server path
+    database.ref(`servers/${currentServer}/messages`).push(msgData);
     
-    // Instantly hide typing status when message is sent
-    database.ref('quantum_channel/typing_status/' + currentRole).set(false); 
+    // Instantly hide typing status
+    database.ref(`servers/${currentServer}/typing_status/${currentRole}`).set(false); 
     
     displayMessage(currentRole, pendingText, pendingBinary.join(' '), 'sent');
     closeModal();
@@ -199,7 +232,7 @@ function displayMessage(user, text, bin, type) {
 
 function addSystemMessage(t) {
     const div = document.createElement('div');
-    div.className = "system-msg"; // Uses the new neon pill CSS
+    div.className = "system-msg";
     div.innerText = t;
     const box = document.getElementById('chat-box');
     box.appendChild(div);
