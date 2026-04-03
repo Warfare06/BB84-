@@ -1,5 +1,4 @@
 // --- 1. FIREBASE INITIALIZATION ---
-// Using your exact Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyC3qv5heO6FpSjFHv7bXQaoIDzqlX1GX9Y",
     authDomain: "bb84-5aaed.firebaseapp.com",
@@ -11,17 +10,17 @@ const firebaseConfig = {
     measurementId: "G-Q5Q9HDFV7K"
 };
 
-// Initialize Firebase App & Database
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
-// --- Global Variables ---
+// --- 2. GLOBAL VARIABLES ---
 let bb84Key = null;
 let currentRole = "Alice";
 let pendingText = "";
 let pendingBinary = [];
+let incomingData = null; 
 
-// --- 2. Startup & Cloud Listeners ---
+// --- 3. STARTUP & CLOUD LISTENERS ---
 window.onload = () => {
     let roleInput = prompt("Enter your role (Alice or Bob):", "Alice");
     currentRole = (roleInput && roleInput.toLowerCase() === 'bob') ? "Bob" : "Alice";
@@ -29,7 +28,7 @@ window.onload = () => {
     document.getElementById('user-role').value = currentRole;
     document.getElementById('chat-with').innerText = `Chatting as: ${currentRole}`;
 
-    // FIREBASE LISTENER 1: The "Quantum Channel" (Listens for Key Sync)
+    // Listener 1: Quantum Channel (Keys)
     database.ref('quantum_channel/keys').on('child_added', (snapshot) => {
         const data = snapshot.val();
         if (data.sender !== currentRole) {
@@ -39,7 +38,7 @@ window.onload = () => {
         }
     });
 
-    // FIREBASE LISTENER 2: The "Classical Channel" (Listens for Messages)
+    // Listener 2: Classical Channel (Messages)
     database.ref('quantum_channel/messages').on('child_added', (snapshot) => {
         const data = snapshot.val();
         if (data.sender !== currentRole) {
@@ -53,13 +52,12 @@ function setRole() {
     document.getElementById('chat-with').innerText = `Chatting as: ${currentRole}`;
 }
 
-// --- 3. Key Generation & Sync ---
+// --- 4. KEY GENERATION (Quantum Simulation) ---
 function generateBB84Key() {
     bb84Key = Math.floor(Math.random() * 255) + 1;
     updateKeyUI(bb84Key);
     addSystemMessage(`System: You generated Quantum Key ${bb84Key}`);
 
-    // Broadcast Key to FIREBASE CLOUD
     database.ref('quantum_channel/keys').push({
         sender: currentRole,
         key: bb84Key,
@@ -74,7 +72,7 @@ function updateKeyUI(key) {
     el.style.opacity = "1";
 }
 
-// --- 4. Sending (Classical Channel Transmission) ---
+// --- 5. SENDING & ENCRYPTION ---
 function sendMessage() {
     const input = document.getElementById('msg-input');
     pendingText = input.value;
@@ -92,11 +90,11 @@ function sendMessage() {
         pendingBinary.push(xorBin);
 
         modalBody.innerHTML += `<tr>
-            <td>'${pendingText[i]}'</td>
-            <td>${ascii}</td>
+            <td style="color: white;">'${pendingText[i]}'</td>
+            <td style="color: gray;">${ascii}</td>
             <td style="color: gray;">${ascii.toString(2).padStart(8, '0')}</td>
             <td>⊕ ${bb84Key}</td>
-            <td style="font-weight: bold; color: #00C2FF;">${xorBin}</td>
+            <td style="font-weight: bold; color: #00C2FF; font-size: 16px;">${xorBin}</td>
         </tr>`;
     }
     document.getElementById('conversionModal').style.display = "block";
@@ -109,7 +107,6 @@ function confirmAndSend() {
         time: Date.now() 
     };
 
-    // WRITING TO FIREBASE CLOUD - Alice sends encrypted data to Bob
     database.ref('quantum_channel/messages').push(msgData);
     
     displayMessage(currentRole, pendingText, pendingBinary.join(' '), 'sent');
@@ -117,19 +114,45 @@ function confirmAndSend() {
     document.getElementById('msg-input').value = "";
 }
 
-// --- 5. Receiving & Decrypting ---
+// --- 6. RECEIVING & DECRYPTION ---
 function receiveFromNetwork(binaryArray, sender) {
     if (!bb84Key) {
-        addSystemMessage(`Encrypted message from ${sender} blocked!`);
+        addSystemMessage(`Encrypted message from ${sender} blocked! No Key.`);
         displayMessage(sender, "Locked Content 🔐", binaryArray.join(' '), 'received');
         return;
     }
     
-    let decrypted = binaryArray.map(bin => 
+    incomingData = { binaryArray, sender };
+    const decModalBody = document.getElementById('dec-modal-body');
+    decModalBody.innerHTML = ""; 
+
+    binaryArray.forEach(bin => {
+        let encryptedDecimal = parseInt(bin, 2);           
+        let decryptedAscii = encryptedDecimal ^ bb84Key;   
+        let finalChar = String.fromCharCode(decryptedAscii); 
+
+        decModalBody.innerHTML += `<tr>
+            <td style="color: #00C2FF;">${bin}</td>
+            <td style="color: gray;">${encryptedDecimal}</td>
+            <td>⊕ ${bb84Key}</td>
+            <td style="color: #5BC0BE;">${decryptedAscii}</td>
+            <td style="font-weight: bold; font-size: 18px; color: white;">'${finalChar}'</td>
+        </tr>`;
+    });
+
+    document.getElementById('decryptionModal').style.display = "block";
+}
+
+function confirmAndReceive() {
+    if (!incomingData) return;
+
+    let decryptedText = incomingData.binaryArray.map(bin => 
         String.fromCharCode(parseInt(bin, 2) ^ bb84Key)
     ).join('');
     
-    displayMessage(sender, decrypted, binaryArray.join(' '), 'received');
+    displayMessage(incomingData.sender, decryptedText, incomingData.binaryArray.join(' '), 'received');
+    closeDecryptionModal();
+    incomingData = null; 
 }
 
 // --- UI Helpers ---
@@ -137,17 +160,17 @@ function displayMessage(user, text, bin, type) {
     const box = document.getElementById('chat-box');
     const div = document.createElement('div');
     div.className = `message ${type}`;
-    div.innerHTML = `<strong>${user}</strong><br>${text}<span class="binary">XOR: ${bin}</span>`;
+    div.innerHTML = `<strong>${user}</strong><br><span style="font-size: 16px;">${text}</span><span class="binary">Encrypted Network Data: ${bin}</span>`;
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
 }
 
 function addSystemMessage(t) {
     const div = document.createElement('div');
-    div.className = "system-msg";
-    div.style = "text-align:center; font-size:11px; color:gray; margin:10px; font-style:italic;";
+    div.style = "text-align:center; font-size:12px; color: #5BC0BE; margin: 15px; font-weight: bold; background: rgba(91, 192, 190, 0.1); padding: 5px; border-radius: 5px;";
     div.innerText = t;
     document.getElementById('chat-box').appendChild(div);
 }
 
 function closeModal() { document.getElementById('conversionModal').style.display = "none"; }
+function closeDecryptionModal() { document.getElementById('decryptionModal').style.display = "none"; }
