@@ -23,10 +23,15 @@ let incomingData = null;
 let typingTimer = null; 
 
 // --- 3. STARTUP & SERVER MANAGEMENT ---
-// --- 3. STARTUP & SERVER MANAGEMENT ---
 window.onload = () => {
+    // 1. NEW: Check if the browser remembers our role from before the refresh
+    let savedRole = localStorage.getItem('quantum_role');
+    if (savedRole) {
+        document.getElementById('user-role').value = savedRole;
+    }
+
+    // 2. Set the current role based on the dropdown
     currentRole = document.getElementById('user-role').value;
-    
     document.getElementById('chat-with').innerText = `Chatting as: ${currentRole}`;
 
     // --- Smart Sidebar: Update Contact dynamically ---
@@ -48,8 +53,8 @@ window.onload = () => {
 };
 
 function setRole() {
-    currentRole = document.getElementById('user-role').value;
-    document.getElementById('chat-with').innerText = `Chatting as: ${currentRole}`;
+    // 3. NEW: Save the selected role to memory BEFORE reloading the page!
+    localStorage.setItem('quantum_role', document.getElementById('user-role').value);
     location.reload(); 
 }
 
