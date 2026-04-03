@@ -69,8 +69,17 @@
     <div class="app-container">
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h3 style="color: white; margin-bottom: 10px;">Chats</h3>
-                <select id="user-role" onchange="setRole()" style="width: 100%; background: #121212; color: #5BC0BE; border: 1px solid #00C2FF; border-radius: 5px; padding: 8px; outline: none; cursor: pointer;">
+                <h3 style="color: white; margin-bottom: 10px;">Quantum Network</h3>
+                
+                <select id="server-select" onchange="switchServer()" style="width: 100%; margin-bottom: 10px; background: #050505; color: #00C2FF; border: 1px solid #00C2FF; border-radius: 5px; padding: 8px; outline: none; cursor: pointer; font-weight: bold;">
+                    <option value="server_1">Server 1 (Alpha)</option>
+                    <option value="server_2">Server 2 (Beta)</option>
+                    <option value="server_3">Server 3 (Gamma)</option>
+                    <option value="server_4">Server 4 (Delta)</option>
+                    <option value="server_5">Server 5 (Epsilon)</option>
+                </select>
+
+                <select id="user-role" onchange="setRole()" style="width: 100%; background: #121212; color: #5BC0BE; border: 1px solid #5BC0BE; border-radius: 5px; padding: 8px; outline: none; cursor: pointer;">
                     <option value="Alice">I am Alice</option>
                     <option value="Bob">I am Bob</option>
                 </select>
