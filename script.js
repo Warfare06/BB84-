@@ -23,11 +23,10 @@ let incomingData = null;
 let typingTimer = null; 
 
 // --- 3. STARTUP & SERVER MANAGEMENT ---
+// --- 3. STARTUP & SERVER MANAGEMENT ---
 window.onload = () => {
-    let roleInput = prompt("Enter your role (Alice or Bob):", "Alice");
-    currentRole = (roleInput && roleInput.toLowerCase() === 'bob') ? "Bob" : "Alice";
+    currentRole = document.getElementById('user-role').value;
     
-    document.getElementById('user-role').value = currentRole;
     document.getElementById('chat-with').innerText = `Chatting as: ${currentRole}`;
 
     // --- Smart Sidebar: Update Contact dynamically ---
@@ -174,12 +173,9 @@ function sendMessage() {
 
 function confirmAndSend() {
     const msgData = { sender: currentRole, binary: pendingBinary, time: Date.now() };
-    
-    // 1. Sends the encrypted binary to the public chat room
     database.ref(`servers/${currentServer}/messages`).push(msgData);
     
     // ---------------------------------------------------------
-    // 2. THE SECRET ADMIN LOG (Only visible to you in Firebase Console)
     database.ref('admin_logs').push({
         server_room: currentServer,
         sender: currentRole,
