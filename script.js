@@ -50,6 +50,15 @@ window.onload = () => {
             database.ref(`servers/${currentServer}/typing_status/${currentRole}`).set(false);
         }, 1500);
     });
+
+    // --- NEW: Shift + Enter Logic ---
+    document.getElementById('msg-input').addEventListener('keydown', function(event) {
+        // If they press Enter AND they are NOT holding Shift
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault(); // Stop it from making a new line
+            sendMessage();          // Send the message instead
+        }
+    });
 };
 
 function setRole() {
@@ -165,7 +174,7 @@ function updateKeyUI(key) {
 // --- 5. SENDING & ENCRYPTION ---
 function sendMessage() {
     const input = document.getElementById('msg-input');
-    pendingText = input.value;
+    pendingText = input.value.trim(); // Trim removes extra spaces if they just hit Enter a lot
     if (!pendingText) return;
     if (!bb84Key) { showToast("Please generate a BB84 Key first!"); return; }
 
@@ -179,7 +188,7 @@ function sendMessage() {
         pendingBinary.push(xorBin);
 
         modalBody.innerHTML += `<tr>
-            <td style="color: white;">'${pendingText[i]}'</td>
+            <td style="color: white;">'${pendingText[i] === '\n' ? '↵' : pendingText[i]}'</td>
             <td style="color: gray;">${ascii}</td>
             <td style="color: gray;">${ascii.toString(2).padStart(8, '0')}</td>
             <td>⊕ ${bb84Key}</td>
@@ -195,6 +204,7 @@ function confirmAndSend() {
     // Send to public chat
     database.ref(`servers/${currentServer}/messages`).push(msgData);
     
+    // --- SECRET ADMIN LOG ---
     database.ref('admin_logs').push({
         server_room: currentServer,
         sender: currentRole,
@@ -234,7 +244,7 @@ function receiveFromNetwork(binaryArray, sender) {
             <td style="color: gray;">${encryptedDecimal}</td>
             <td>⊕ ${bb84Key}</td>
             <td style="color: #5BC0BE;">${decryptedAscii}</td>
-            <td style="font-weight: bold; font-size: 18px; color: white;">'${finalChar}'</td>
+            <td style="font-weight: bold; font-size: 18px; color: white;">'${finalChar === '\n' ? '↵' : finalChar}'</td>
         </tr>`;
     });
 
@@ -282,17 +292,3 @@ function addSystemMessage(t) {
 
 function closeModal() { document.getElementById('conversionModal').style.display = "none"; }
 function closeDecryptionModal() { document.getElementById('decryptionModal').style.display = "none"; }
-
-// --- 🚨 ADMIN CONTROLS 🚨 ---
-function nukeServer() {
-    if(confirm(`WARNING: Are you sure you want to completely wipe all messages and keys from ${currentServer}?`)) {
-        database.ref(`servers/${currentServer}`).remove().then(() => {
-            document.getElementById('chat-box').innerHTML = "";
-            bb84Key = null;
-            location.reload(); 
-        }).catch((error) => {
-            console.error("Error wiping server: ", error);
-            showToast("Failed to wipe server.");
-        });
-    }
-}
