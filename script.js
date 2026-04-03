@@ -19,7 +19,7 @@ let currentRole = "Alice";
 let pendingText = "";
 let pendingBinary = [];
 let incomingData = null; 
-
+let typingTimer = null; // For the typing indicator
 
 // --- 3. STARTUP & CLOUD LISTENERS ---
 window.onload = () => {
@@ -46,11 +46,39 @@ window.onload = () => {
             receiveFromNetwork(data.binary, data.sender);
         }
     });
+
+    // Listener 3: Typing Status
+    const otherRole = currentRole === "Alice" ? "Bob" : "Alice";
+    database.ref('quantum_channel/typing_status/' + otherRole).on('value', (snapshot) => {
+        const isTyping = snapshot.val();
+        const indicator = document.getElementById('typing-indicator');
+        
+        if (isTyping) {
+            indicator.innerText = `${otherRole} is typing...`;
+            indicator.style.display = "block";
+            const box = document.getElementById('chat-box');
+            box.scrollTop = box.scrollHeight;
+        } else {
+            indicator.style.display = "none";
+        }
+    });
+
+    // Detect when YOU are typing
+    document.getElementById('msg-input').addEventListener('input', () => {
+        database.ref('quantum_channel/typing_status/' + currentRole).set(true);
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(() => {
+            database.ref('quantum_channel/typing_status/' + currentRole).set(false);
+        }, 1500);
+    });
 };
 
 function setRole() {
     currentRole = document.getElementById('user-role').value;
     document.getElementById('chat-with').innerText = `Chatting as: ${currentRole}`;
+    
+    // Refresh page so listeners bind correctly to new role
+    location.reload(); 
 }
 
 // --- 4. KEY GENERATION (Quantum Simulation) ---
@@ -110,6 +138,9 @@ function confirmAndSend() {
 
     database.ref('quantum_channel/messages').push(msgData);
     
+    // Instantly hide typing status when message is sent
+    database.ref('quantum_channel/typing_status/' + currentRole).set(false); 
+    
     displayMessage(currentRole, pendingText, pendingBinary.join(' '), 'sent');
     closeModal();
     document.getElementById('msg-input').value = "";
@@ -168,12 +199,11 @@ function displayMessage(user, text, bin, type) {
 
 function addSystemMessage(t) {
     const div = document.createElement('div');
-    div.className = "system-msg"; // This triggers the new Neon CSS
+    div.className = "system-msg"; // Uses the new neon pill CSS
     div.innerText = t;
-    
     const box = document.getElementById('chat-box');
     box.appendChild(div);
-    box.scrollTop = box.scrollHeight; // Auto-scroll to bottom
+    box.scrollTop = box.scrollHeight;
 }
 
 function closeModal() { document.getElementById('conversionModal').style.display = "none"; }
