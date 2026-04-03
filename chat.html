@@ -43,7 +43,7 @@
     </div>
 
     <div id="decryptionModal" class="modal">
-        <div class="modal-content" style="border-color: #5BC0BE; box-shadow: 0 0 30px rgba(91, 192, 190, 0.4);">
+        <div class="modal-content" style="border-color: #5BC0BE; box-shadow: 0 0 40px rgba(91, 192, 190, 0.4);">
             <span class="close" onclick="closeDecryptionModal()">&times;</span>
             <h2 style="color: #5BC0BE;">Incoming Encrypted Data Detected</h2>
             <p style="color: gray; margin-bottom: 15px;">Applying Shared Key to decrypt...</p>
@@ -70,7 +70,7 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h3 style="color: white; margin-bottom: 10px;">Chats</h3>
-                <select id="user-role" onchange="setRole()" style="width: 100%; background: #121212; color: #5BC0BE; border: 1px solid #00C2FF; border-radius: 5px; padding: 8px;">
+                <select id="user-role" onchange="setRole()" style="width: 100%; background: #121212; color: #5BC0BE; border: 1px solid #00C2FF; border-radius: 5px; padding: 8px; outline: none; cursor: pointer;">
                     <option value="Alice">I am Alice</option>
                     <option value="Bob">I am Bob</option>
                 </select>
@@ -93,6 +93,8 @@
             </header>
 
             <div id="chat-box" class="chat-box"></div>
+
+            <div id="typing-indicator" class="typing-indicator">...</div>
 
             <footer class="input-area">
                 <button class="bb84-btn" onclick="generateBB84Key()">KEY GEN</button>
