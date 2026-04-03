@@ -103,7 +103,59 @@ td { font-family: 'Courier New', monospace; font-size: 15px; }
 .close:hover { color: white; }
 
 /* --- Chat Bubbles --- */
-.message { max-width: 70%; padding: 15px; border-radius: 15px; margin-bottom: 15px; line-height: 1.4; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-.sent { align-self: flex-end; background: linear-gradient(135deg, var(--accent-blue), #003366); border: 1px solid var(--neon-blue); border-bottom-right-radius: 2px; }
-.received { align-self: flex-start; background: #1a1a1a; border: 1px solid rgba(255,255,255,0.1); border-bottom-left-radius: 2px; }
-.binary { font-family: monospace; font-size: 11px; display: block; margin-top: 8px; opacity: 0.9; color: var(--header-cyan); padding: 5px; background: rgba(0,0,0,0.5); border-radius: 5px; }
+/* --- Chat Bubbles (Neon Upgraded) --- */
+.message { 
+    max-width: 70%; 
+    padding: 15px; 
+    border-radius: 15px; 
+    margin-bottom: 15px; 
+    line-height: 1.4; 
+    backdrop-filter: blur(10px);
+}
+
+/* Alice's Messages (Sent - Neon Blue Glow) */
+.sent { 
+    align-self: flex-end; 
+    background: rgba(0, 194, 255, 0.1); /* Transparent Neon Blue */
+    border: 1px solid var(--neon-blue); 
+    border-bottom-right-radius: 2px; 
+    box-shadow: 0 0 15px rgba(0, 194, 255, 0.3), inset 0 0 10px rgba(0, 194, 255, 0.1);
+}
+
+/* Bob's Messages (Received - Cyan Glow) */
+.received { 
+    align-self: flex-start; 
+    background: rgba(91, 192, 190, 0.1); /* Transparent Cyan */
+    border: 1px solid var(--header-cyan); 
+    border-bottom-left-radius: 2px; 
+    box-shadow: 0 0 15px rgba(91, 192, 190, 0.3), inset 0 0 10px rgba(91, 192, 190, 0.1);
+}
+
+.binary { 
+    font-family: monospace; 
+    font-size: 11px; 
+    display: block; 
+    margin-top: 8px; 
+    opacity: 0.9; 
+    color: var(--header-cyan); 
+    padding: 5px; 
+    background: rgba(0,0,0,0.5); 
+    border-radius: 5px; 
+    border: 1px solid rgba(91, 192, 190, 0.3);
+}
+
+/* System Alerts (Centered - Glowing Pill) */
+.system-msg {
+    align-self: center;
+    text-align: center; 
+    font-size: 12px; 
+    color: var(--neon-blue); 
+    margin: 15px auto; 
+    font-weight: bold; 
+    background: rgba(0, 194, 255, 0.05); 
+    border: 1px solid var(--neon-blue);
+    padding: 8px 20px; 
+    border-radius: 30px;
+    box-shadow: 0 0 15px rgba(0, 194, 255, 0.4);
+    width: fit-content;
+}
