@@ -109,3 +109,32 @@ th { background: #111; color: white; font-size: 12px; text-transform: uppercase;
 td { font-family: 'Courier New', monospace; font-size: 15px; }
 .close { float: right; font-size: 28px; color: gray; cursor: pointer; }
 .close:hover { color: white; }
+
+
+/* --- 1. Cyber Button Press Effect --- */
+button:active {
+    transform: scale(0.95) translateY(2px) !important;
+    box-shadow: 0 0 50px var(--neon-blue), inset 0 0 20px var(--neon-blue) !important;
+    transition: all 0.05s ease; /* Super fast response */
+}
+/* --- 2. Smooth Message Slide-in --- */
+@keyframes slideInUp {
+    0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.message {
+    animation: slideInUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    transform-origin: bottom center;
+}
+/* --- 3. Hacker System Alert Pop --- */
+@keyframes terminalPop {
+    0% { transform: scaleX(0); opacity: 0; }
+    50% { transform: scaleX(1.1); opacity: 0.8; }
+    100% { transform: scaleX(1); opacity: 1; }
+}
+
+.system-msg {
+    animation: terminalPop 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    transform-origin: center;
+}
