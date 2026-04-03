@@ -73,14 +73,26 @@ body {
 
 .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; }
 
-/* --- Chat Bubbles (Neon Upgraded) --- */
-.message { max-width: 70%; padding: 15px; border-radius: 15px; margin-bottom: 15px; line-height: 1.4; backdrop-filter: blur(10px); }
+/* --- Chat Bubbles (Neon Upgraded + Slide In) --- */
+@keyframes slideInUp { 0% { opacity: 0; transform: translateY(20px) scale(0.95); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+
+.message { 
+    max-width: 70%; padding: 15px; border-radius: 15px; margin-bottom: 15px; line-height: 1.4; backdrop-filter: blur(10px);
+    animation: slideInUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; transform-origin: bottom center;
+}
 .sent { align-self: flex-end; background: rgba(0, 194, 255, 0.1); border: 1px solid var(--neon-blue); border-bottom-right-radius: 2px; box-shadow: 0 0 15px rgba(0, 194, 255, 0.3), inset 0 0 10px rgba(0, 194, 255, 0.1); }
 .received { align-self: flex-start; background: rgba(91, 192, 190, 0.1); border: 1px solid var(--header-cyan); border-bottom-left-radius: 2px; box-shadow: 0 0 15px rgba(91, 192, 190, 0.3), inset 0 0 10px rgba(91, 192, 190, 0.1); }
 .binary { font-family: monospace; font-size: 11px; display: block; margin-top: 8px; opacity: 0.9; color: var(--header-cyan); padding: 5px; background: rgba(0,0,0,0.5); border-radius: 5px; border: 1px solid rgba(91, 192, 190, 0.3); }
 
-/* System Alerts (Centered Glowing Pill) */
-.system-msg { align-self: center; text-align: center; font-size: 12px; color: var(--neon-blue); margin: 15px auto; font-weight: bold; background: rgba(0, 194, 255, 0.05); border: 1px solid var(--neon-blue); padding: 8px 20px; border-radius: 30px; box-shadow: 0 0 15px rgba(0, 194, 255, 0.4); width: fit-content; }
+/* System Alerts (Terminal Pop) */
+@keyframes terminalPop { 0% { transform: scaleX(0); opacity: 0; } 50% { transform: scaleX(1.1); opacity: 0.8; } 100% { transform: scaleX(1); opacity: 1; } }
+
+.system-msg { 
+    align-self: center; text-align: center; font-size: 12px; color: var(--neon-blue); margin: 15px auto; font-weight: bold; 
+    background: rgba(0, 194, 255, 0.05); border: 1px solid var(--neon-blue); padding: 8px 20px; border-radius: 30px; 
+    box-shadow: 0 0 15px rgba(0, 194, 255, 0.4); width: fit-content;
+    animation: terminalPop 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards; transform-origin: center;
+}
 
 /* --- Typing Indicator --- */
 .typing-indicator { display: none; font-size: 13px; color: var(--neon-blue); font-style: italic; padding: 5px 25px; background: transparent; animation: typingPulse 1.5s infinite; letter-spacing: 1px; z-index: 10; border-top: 1px solid transparent;}
@@ -97,6 +109,9 @@ button { cursor: pointer; border: none; border-radius: 12px; font-weight: bold; 
 .confirm-btn { width: 100%; margin-top: 15px; }
 button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px var(--neon-blue); filter: brightness(1.2); }
 
+/* Cyber Button Click Effect */
+button:active { transform: scale(0.95) translateY(2px) !important; box-shadow: 0 0 50px var(--neon-blue), inset 0 0 20px var(--neon-blue) !important; transition: all 0.05s ease; }
+
 /* --- Modals (Popups) --- */
 .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); backdrop-filter: blur(10px); }
 .modal-content { background: #0a0a0a; margin: 5% auto; padding: 35px; width: 90%; max-width: 850px; border: 2px solid var(--neon-blue); border-radius: 20px; box-shadow: 0 0 40px var(--neon-blue); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -109,32 +124,3 @@ th { background: #111; color: white; font-size: 12px; text-transform: uppercase;
 td { font-family: 'Courier New', monospace; font-size: 15px; }
 .close { float: right; font-size: 28px; color: gray; cursor: pointer; }
 .close:hover { color: white; }
-
-
-/* --- 1. Cyber Button Press Effect --- */
-button:active {
-    transform: scale(0.95) translateY(2px) !important;
-    box-shadow: 0 0 50px var(--neon-blue), inset 0 0 20px var(--neon-blue) !important;
-    transition: all 0.05s ease; /* Super fast response */
-}
-/* --- 2. Smooth Message Slide-in --- */
-@keyframes slideInUp {
-    0% { opacity: 0; transform: translateY(20px) scale(0.95); }
-    100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.message {
-    animation: slideInUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    transform-origin: bottom center;
-}
-/* --- 3. Hacker System Alert Pop --- */
-@keyframes terminalPop {
-    0% { transform: scaleX(0); opacity: 0; }
-    50% { transform: scaleX(1.1); opacity: 0.8; }
-    100% { transform: scaleX(1); opacity: 1; }
-}
-
-.system-msg {
-    animation: terminalPop 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-    transform-origin: center;
-}
