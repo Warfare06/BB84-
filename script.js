@@ -1,40 +1,49 @@
+// --- 1. FIREBASE INITIALIZATION ---
+// Using your exact Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyC3qv5heO6FpSjFHv7bXQaoIDzqlX1GX9Y",
+    authDomain: "bb84-5aaed.firebaseapp.com",
+    databaseURL: "https://bb84-5aaed-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "bb84-5aaed",
+    storageBucket: "bb84-5aaed.firebasestorage.app",
+    messagingSenderId: "296035061055",
+    appId: "1:296035061055:web:e63d9a5fcfbed3202a578a",
+    measurementId: "G-Q5Q9HDFV7K"
+};
+
+// Initialize Firebase App & Database
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// --- Global Variables ---
 let bb84Key = null;
 let currentRole = "Alice";
 let pendingText = "";
 let pendingBinary = [];
 
-// --- 1. Startup & Global Listeners ---
+// --- 2. Startup & Cloud Listeners ---
 window.onload = () => {
-    // Clear old data so it doesn't get confused
-    localStorage.removeItem('quantum_chat_msg');
-    localStorage.removeItem('quantum_key_sync');
-
     let roleInput = prompt("Enter your role (Alice or Bob):", "Alice");
     currentRole = (roleInput && roleInput.toLowerCase() === 'bob') ? "Bob" : "Alice";
     
     document.getElementById('user-role').value = currentRole;
     document.getElementById('chat-with').innerText = `Chatting as: ${currentRole}`;
 
-    // THE LISTENER: This is the "Classical Channel"
-    window.addEventListener('storage', (event) => {
-        if (!event.newValue) return; // Ignore deletions
-        
-        const data = JSON.parse(event.newValue);
-        
-        // Handle Key Synchronization
-        if (event.key === 'quantum_key_sync') {
-            if (data.sender !== currentRole) {
-                bb84Key = data.key;
-                updateKeyUI(bb84Key);
-                addSystemMessage(`System: Received Quantum Key from ${data.sender}`);
-            }
+    // FIREBASE LISTENER 1: The "Quantum Channel" (Listens for Key Sync)
+    database.ref('quantum_channel/keys').on('child_added', (snapshot) => {
+        const data = snapshot.val();
+        if (data.sender !== currentRole) {
+            bb84Key = data.key;
+            updateKeyUI(bb84Key);
+            addSystemMessage(`System: Received Quantum Key from ${data.sender} via Cloud`);
         }
+    });
 
-        // Handle Message Synchronization
-        if (event.key === 'quantum_chat_msg') {
-            if (data.sender !== currentRole) {
-                receiveFromNetwork(data.binary, data.sender);
-            }
+    // FIREBASE LISTENER 2: The "Classical Channel" (Listens for Messages)
+    database.ref('quantum_channel/messages').on('child_added', (snapshot) => {
+        const data = snapshot.val();
+        if (data.sender !== currentRole) {
+            receiveFromNetwork(data.binary, data.sender);
         }
     });
 };
@@ -44,18 +53,18 @@ function setRole() {
     document.getElementById('chat-with').innerText = `Chatting as: ${currentRole}`;
 }
 
-// --- 2. Key Generation & Sync ---
+// --- 3. Key Generation & Sync ---
 function generateBB84Key() {
     bb84Key = Math.floor(Math.random() * 255) + 1;
     updateKeyUI(bb84Key);
     addSystemMessage(`System: You generated Quantum Key ${bb84Key}`);
 
-    // Broadcast Key
-    localStorage.setItem('quantum_key_sync', JSON.stringify({
+    // Broadcast Key to FIREBASE CLOUD
+    database.ref('quantum_channel/keys').push({
         sender: currentRole,
         key: bb84Key,
         time: Date.now()
-    }));
+    });
 }
 
 function updateKeyUI(key) {
@@ -65,7 +74,7 @@ function updateKeyUI(key) {
     el.style.opacity = "1";
 }
 
-// --- 3. Sending (Classical Channel Transmission) ---
+// --- 4. Sending (Classical Channel Transmission) ---
 function sendMessage() {
     const input = document.getElementById('msg-input');
     pendingText = input.value;
@@ -97,18 +106,18 @@ function confirmAndSend() {
     const msgData = {
         sender: currentRole,
         binary: pendingBinary,
-        time: Date.now() // Timestamp forces the storage event to fire every time
+        time: Date.now() 
     };
 
-    // WRITING TO STORAGE - This is where Alice sends data to Bob
-    localStorage.setItem('quantum_chat_msg', JSON.stringify(msgData));
+    // WRITING TO FIREBASE CLOUD - Alice sends encrypted data to Bob
+    database.ref('quantum_channel/messages').push(msgData);
     
     displayMessage(currentRole, pendingText, pendingBinary.join(' '), 'sent');
     closeModal();
     document.getElementById('msg-input').value = "";
 }
 
-// --- 4. Receiving & Decrypting ---
+// --- 5. Receiving & Decrypting ---
 function receiveFromNetwork(binaryArray, sender) {
     if (!bb84Key) {
         addSystemMessage(`Encrypted message from ${sender} blocked!`);
@@ -135,7 +144,7 @@ function displayMessage(user, text, bin, type) {
 
 function addSystemMessage(t) {
     const div = document.createElement('div');
-    div.className = "system-msg"; // Ensure this matches your CSS or style it here
+    div.className = "system-msg";
     div.style = "text-align:center; font-size:11px; color:gray; margin:10px; font-style:italic;";
     div.innerText = t;
     document.getElementById('chat-box').appendChild(div);
