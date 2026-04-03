@@ -20,6 +20,7 @@ let pendingText = "";
 let pendingBinary = [];
 let incomingData = null; 
 
+
 // --- 3. STARTUP & CLOUD LISTENERS ---
 window.onload = () => {
     let roleInput = prompt("Enter your role (Alice or Bob):", "Alice");
