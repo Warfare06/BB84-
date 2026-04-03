@@ -147,3 +147,18 @@ th { background: #111; color: white; font-size: 12px; text-transform: uppercase;
 td { font-family: 'Courier New', monospace; font-size: 15px; }
 .close { float: right; font-size: 28px; color: gray; cursor: pointer; }
 .close:hover { color: white; }
+
+/* --- 🚨 EVE ATTACK ALERT 🚨 --- */
+.system-msg.alert {
+    background: rgba(255, 0, 0, 0.1) !important;
+    border: 1px solid #ff4444 !important;
+    color: #ff4444 !important;
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.5) !important;
+    animation: flashRed 1.5s infinite;
+    font-size: 14px;
+    padding: 15px 30px;
+}
+@keyframes flashRed {
+    0%, 100% { opacity: 1; text-shadow: 0 0 10px red; }
+    50% { opacity: 0.6; text-shadow: none; }
+}
