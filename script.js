@@ -16,7 +16,7 @@ const database = firebase.database();
 // --- 2. GLOBAL VARIABLES ---
 let bb84Key = null;
 let currentRole = "Alice";
-let currentServer = "server_1"; // Tracks which room you are in
+let currentServer = "server_1"; 
 let pendingText = "";
 let pendingBinary = [];
 let incomingData = null; 
@@ -49,36 +49,30 @@ function setRole() {
     location.reload(); 
 }
 
-// THE NEW SERVER SWITCHING FUNCTION
+// THE SERVER SWITCHING LOGIC
 function switchServer() {
-    // 1. Turn off listeners for the OLD server so messages don't bleed over
     database.ref(`servers/${currentServer}/keys`).off();
     database.ref(`servers/${currentServer}/messages`).off();
     
     const otherRole = currentRole === "Alice" ? "Bob" : "Alice";
     database.ref(`servers/${currentServer}/typing_status/${otherRole}`).off();
 
-    // 2. Update to the NEW server
     currentServer = document.getElementById('server-select').value;
 
-    // 3. Wipe the UI clean for the new room
     document.getElementById('chat-box').innerHTML = "";
-    bb84Key = null; // New server = new quantum key needed
+    bb84Key = null; 
     document.getElementById('key-status').style.visibility = "hidden";
     document.getElementById('typing-indicator').style.display = "none";
 
     let displayServerName = document.getElementById('server-select').options[document.getElementById('server-select').selectedIndex].text;
     addSystemMessage(`Switched to ${displayServerName}. Awaiting Quantum Key Generation...`);
 
-    // 4. Attach listeners to the NEW server
     attachFirebaseListeners();
 }
 
-// Master function to listen to the CURRENT server
 function attachFirebaseListeners() {
     const otherRole = currentRole === "Alice" ? "Bob" : "Alice";
 
-    // Listen for Keys in this specific server
     database.ref(`servers/${currentServer}/keys`).on('child_added', (snapshot) => {
         const data = snapshot.val();
         if (data.sender !== currentRole) {
@@ -88,7 +82,6 @@ function attachFirebaseListeners() {
         }
     });
 
-    // Listen for Messages in this specific server
     database.ref(`servers/${currentServer}/messages`).on('child_added', (snapshot) => {
         const data = snapshot.val();
         if (data.sender !== currentRole) {
@@ -96,7 +89,6 @@ function attachFirebaseListeners() {
         }
     });
 
-    // Listen for Typing Status in this specific server
     database.ref(`servers/${currentServer}/typing_status/${otherRole}`).on('value', (snapshot) => {
         const isTyping = snapshot.val();
         const indicator = document.getElementById('typing-indicator');
@@ -112,17 +104,33 @@ function attachFirebaseListeners() {
     });
 }
 
+// --- TOAST NOTIFICATIONS ---
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.innerText = `⚠️ ${msg}`;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// --- AUDIO HELPERS ---
+function playSound(id) {
+    const sound = document.getElementById(id);
+    if(sound) {
+        sound.currentTime = 0;
+        sound.volume = id === 'snd-key' ? 0.3 : 0.5;
+        sound.play().catch(e => console.log("Audio play prevented by browser"));
+    }
+}
+
 // --- 4. KEY GENERATION (Quantum Simulation) ---
 function generateBB84Key() {
     bb84Key = Math.floor(Math.random() * 255) + 1;
     updateKeyUI(bb84Key);
     addSystemMessage(`System: You generated Quantum Key ${bb84Key}`);
+    playSound('snd-key');
 
-    // Push to the specific server path
     database.ref(`servers/${currentServer}/keys`).push({
-        sender: currentRole,
-        key: bb84Key,
-        time: Date.now()
+        sender: currentRole, key: bb84Key, time: Date.now()
     });
 }
 
@@ -138,11 +146,10 @@ function sendMessage() {
     const input = document.getElementById('msg-input');
     pendingText = input.value;
     if (!pendingText) return;
-    if (!bb84Key) { alert("Please generate a BB84 Key first!"); return; }
+    if (!bb84Key) { showToast("Please generate a BB84 Key first!"); return; }
 
     const modalBody = document.getElementById('modal-body');
-    modalBody.innerHTML = ""; 
-    pendingBinary = [];
+    modalBody.innerHTML = ""; pendingBinary = [];
     
     for (let i = 0; i < pendingText.length; i++) {
         let ascii = pendingText.charCodeAt(i);
@@ -162,19 +169,12 @@ function sendMessage() {
 }
 
 function confirmAndSend() {
-    const msgData = {
-        sender: currentRole,
-        binary: pendingBinary,
-        time: Date.now() 
-    };
-
-    // Push message to the specific server path
+    const msgData = { sender: currentRole, binary: pendingBinary, time: Date.now() };
     database.ref(`servers/${currentServer}/messages`).push(msgData);
-    
-    // Instantly hide typing status
     database.ref(`servers/${currentServer}/typing_status/${currentRole}`).set(false); 
     
     displayMessage(currentRole, pendingText, pendingBinary.join(' '), 'sent');
+    playSound('snd-send');
     closeModal();
     document.getElementById('msg-input').value = "";
 }
@@ -216,6 +216,7 @@ function confirmAndReceive() {
     ).join('');
     
     displayMessage(incomingData.sender, decryptedText, incomingData.binaryArray.join(' '), 'received');
+    playSound('snd-recv');
     closeDecryptionModal();
     incomingData = null; 
 }
@@ -225,7 +226,14 @@ function displayMessage(user, text, bin, type) {
     const box = document.getElementById('chat-box');
     const div = document.createElement('div');
     div.className = `message ${type}`;
-    div.innerHTML = `<strong>${user}</strong><br><span style="font-size: 16px;">${text}</span><span class="binary">Encrypted Network Data: ${bin}</span>`;
+    
+    const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    div.innerHTML = `
+        <strong>${user}</strong> <span style="font-size: 10px; color: gray; float: right;">${timeString}</span><br>
+        <span style="font-size: 16px;">${text}</span>
+        <span class="binary">Encrypted Network Data: ${bin}</span>
+    `;
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
 }
