@@ -133,6 +133,34 @@ function attachFirebaseListeners() {
             indicator.style.display = "none";
         }
     });
+
+    // --- 🚨 EVE ATTACK LISTENER 🚨 ---
+    database.ref(`servers/${currentServer}/alerts`)
+        .orderByChild('time')
+        .startAt(sessionStartTime)
+        .on('child_added', (snapshot) => {
+            const alertData = snapshot.val();
+            if (alertData.type === "EVE_INTERCEPT") {
+                // Scramble the key
+                bb84Key = Math.floor(Math.random() * 9999); 
+                
+                // Make the UI look broken
+                const el = document.getElementById('key-status');
+                el.innerText = `KEY: CORRUPTED`;
+                el.style.background = "#ff4444";
+                el.style.boxShadow = "0 0 20px red";
+                
+                // Show the chat alert
+                const box = document.getElementById('chat-box');
+                const div = document.createElement('div');
+                div.className = "system-msg alert";
+                div.innerHTML = "🚨 CRITICAL WARNING 🚨<br>Quantum State Collapse Detected.<br>Eavesdropper Interception. Key Corrupted!";
+                box.appendChild(div);
+                box.scrollTop = box.scrollHeight;
+                
+                showToast("QUANTUM CHANNEL COMPROMISED!");
+            }
+        });
 }
 
 // --- TOAST NOTIFICATIONS & AUDIO ---
@@ -155,6 +183,12 @@ function playSound(id) {
 // --- 4. KEY GENERATION (Quantum Simulation) ---
 function generateBB84Key() {
     bb84Key = Math.floor(Math.random() * 255) + 1;
+    
+    // Reset styling back to secure neon blue in case there was a hack
+    const el = document.getElementById('key-status');
+    el.style.background = "var(--neon-blue)";
+    el.style.boxShadow = "0 0 20px var(--neon-blue)";
+
     updateKeyUI(bb84Key);
     addSystemMessage(`System: You generated Quantum Key ${bb84Key}`);
     playSound('snd-key');
@@ -174,7 +208,7 @@ function updateKeyUI(key) {
 // --- 5. SENDING & ENCRYPTION ---
 function sendMessage() {
     const input = document.getElementById('msg-input');
-    pendingText = input.value.trim(); // Trim removes extra spaces if they just hit Enter a lot
+    pendingText = input.value.trim(); 
     if (!pendingText) return;
     if (!bb84Key) { showToast("Please generate a BB84 Key first!"); return; }
 
@@ -292,3 +326,15 @@ function addSystemMessage(t) {
 
 function closeModal() { document.getElementById('conversionModal').style.display = "none"; }
 function closeDecryptionModal() { document.getElementById('decryptionModal').style.display = "none"; }
+
+// --- 🚨 EVE ATTACK TRIGGER 🚨 ---
+function triggerEveAttack() {
+    if (!bb84Key) {
+        showToast("No active quantum key to intercept!");
+        return;
+    }
+    database.ref(`servers/${currentServer}/alerts`).push({
+        type: "EVE_INTERCEPT",
+        time: Date.now()
+    });
+}
