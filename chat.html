@@ -19,7 +19,7 @@
         <div class="modal-content">
             <span class="close" onclick="closeModal()">&times;</span>
             <h2 style="color: #00C2FF;">Quantum Encryption Process</h2>
-            <p id="key-info" style="color: #5BC0BE; font-weight: bold; margin-bottom: 15px;"></p>
+            <p style="color: gray; margin-bottom: 15px;">Applying Shared Key to encrypt...</p>
             
             <div class="table-container">
                 <table id="conversionTable">
@@ -35,16 +35,39 @@
                     <tbody id="modal-body"></tbody>
                 </table>
             </div>
+            <button class="confirm-btn" onclick="confirmAndSend()">ENCRYPT & SEND TO NETWORK</button>
+        </div>
+    </div>
+
+    <div id="decryptionModal" class="modal">
+        <div class="modal-content" style="border-color: #5BC0BE; box-shadow: 0 0 30px rgba(91, 192, 190, 0.4);">
+            <span class="close" onclick="closeDecryptionModal()">&times;</span>
+            <h2 style="color: #5BC0BE;">Incoming Encrypted Data Detected</h2>
+            <p style="color: gray; margin-bottom: 15px;">Applying Shared Key to decrypt...</p>
             
-            <button class="confirm-btn" onclick="confirmAndSend()">CONFIRM & SEND TO NETWORK</button>
+            <div class="table-container">
+                <table id="decryptionTable">
+                    <thead>
+                        <tr>
+                            <th>Recv Binary</th>
+                            <th>Decimal</th>
+                            <th>XOR (Key)</th>
+                            <th>ASCII</th>
+                            <th>Final Char</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dec-modal-body"></tbody>
+                </table>
+            </div>
+            <button class="confirm-btn" style="background: #5BC0BE; color: black; margin-top: 15px;" onclick="confirmAndReceive()">DECRYPT & READ MESSAGE</button>
         </div>
     </div>
 
     <div class="app-container">
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h3>Chats</h3>
-                <select id="user-role" onchange="setRole()" style="width: 100%; margin-top: 10px; background: #121212; color: #5BC0BE; border: 1px solid #00C2FF; border-radius: 5px; padding: 5px;">
+                <h3 style="color: white; margin-bottom: 10px;">Chats</h3>
+                <select id="user-role" onchange="setRole()" style="width: 100%; background: #121212; color: #5BC0BE; border: 1px solid #00C2FF; border-radius: 5px; padding: 8px;">
                     <option value="Alice">I am Alice</option>
                     <option value="Bob">I am Bob</option>
                 </select>
@@ -52,17 +75,17 @@
             
             <div class="contact active">
                 <div class="avatar">B</div>
-                <div class="info"><strong>Bob</strong><small>• Secured</small></div>
+                <div class="info"><strong>Bob</strong><small style="color: #00C2FF;">• Secured</small></div>
             </div>
             <div class="contact">
-                <div class="avatar" style="background:#630d16">E</div>
-                <div class="info"><strong>Eve</strong><small>• Offline</small></div>
+                <div class="avatar" style="background: #630d16; color: white;">E</div>
+                <div class="info"><strong>Eve</strong><small style="color: gray;">• Offline</small></div>
             </div>
         </aside>
 
         <main class="chat-window">
             <header class="chat-header">
-                <h3 id="chat-with">Chatting as: Alice</h3>
+                <h3 id="chat-with" style="color: white;">Chatting as: Alice</h3>
                 <span id="key-status" style="visibility: hidden;">Key: None</span>
             </header>
 
@@ -75,8 +98,10 @@
             </footer>
         </main>
     </div>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
     <script src="script.js"></script>
 </body>
 </html>
