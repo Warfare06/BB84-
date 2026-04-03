@@ -30,6 +30,11 @@ window.onload = () => {
     document.getElementById('user-role').value = currentRole;
     document.getElementById('chat-with').innerText = `Chatting as: ${currentRole}`;
 
+    // --- Smart Sidebar: Update Contact dynamically ---
+    const secureContact = currentRole === "Alice" ? "Bob" : "Alice";
+    document.getElementById('contact-name').innerText = secureContact;
+    document.getElementById('contact-avatar').innerText = secureContact.charAt(0);
+
     // Attach listeners for the default server on load
     attachFirebaseListeners();
 
@@ -104,7 +109,7 @@ function attachFirebaseListeners() {
     });
 }
 
-// --- TOAST NOTIFICATIONS ---
+// --- TOAST NOTIFICATIONS & AUDIO ---
 function showToast(msg) {
     const toast = document.getElementById('toast');
     toast.innerText = `⚠️ ${msg}`;
@@ -112,7 +117,6 @@ function showToast(msg) {
     setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
-// --- AUDIO HELPERS ---
 function playSound(id) {
     const sound = document.getElementById(id);
     if(sound) {
