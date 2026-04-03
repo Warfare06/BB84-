@@ -10,119 +10,93 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; transition: all 0.3s ease; }
 
-
 /* --- Dynamic Animated Background --- */
 body { 
-    margin: 0;
-    font-family: 'Inter', sans-serif;
-    /* This creates a large gradient that we will move */
-    background: linear-gradient(-45deg, #0B132B, #3d050a, #121212, #004d4d);
+    margin: 0; font-family: 'Inter', 'Segoe UI', sans-serif;
+    background: linear-gradient(-45deg, #0B132B, #3d050a, #121212, #002233);
     background-size: 400% 400%;
     animation: gradientBG 15s ease infinite;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    overflow: hidden;
+    height: 100vh; display: flex; align-items: center; justify-content: center;
+    color: white; overflow: hidden;
 }
 
-/* --- Keyframes for the Background Movement --- */
 @keyframes gradientBG {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
 }
 
-/* --- Adding a Subtle Floating Glow --- */
 body::before {
-    content: "";
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
+    content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     background: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
-    opacity: 0.1; /* Light texture over the animation */
-    z-index: -1;
+    opacity: 0.15; z-index: -1;
 }
 
-.app-container { 
-    width: 95vw; height: 85vh; background: rgba(18, 18, 18, 0.7);
-    backdrop-filter: blur(20px); border: 1px solid rgba(91, 192, 190, 0.3);
-    border-radius: 20px; display: flex; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-}
-
-/* Sidebar Fix: Single line names */
-.sidebar { width: 300px; background: var(--sidebar-teal); border-right: 1px solid var(--cherry-main); }
-.contact { display: flex; align-items: center; padding: 15px; white-space: nowrap; border-bottom: 1px solid rgba(255,255,255,0.05); overflow: hidden; }
-.avatar { flex: 0 0 40px; height: 40px; border-radius: 50%; background: var(--neon-blue); margin-right: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: black; }
-.info { overflow: hidden; text-overflow: ellipsis; display: flex; flex-direction: column; }
-
-/* Chat Window & Bottom Input */
-.chat-window { flex: 1; display: flex; flex-direction: column; background: #0f0f0f; }
-.chat-box { flex: 1; padding: 20px; overflow-y: auto; }
-.chat-header { padding: 15px 25px; background: var(--bg-dark); display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--neon-blue); }
-
-#key-status { 
-    background: var(--neon-blue) !important; color: black !important; 
-    padding: 6px 14px; border-radius: 20px; font-weight: 900; 
-    box-shadow: 0 0 15px var(--neon-blue); font-family: monospace;
-}
-
-.input-area { padding: 20px; background: rgba(0,0,0,0.5); display: flex; gap: 12px; border-top: 1px solid var(--neon-blue); }
-input#msg-input { flex: 1; padding: 12px; border-radius: 20px; border: 1px solid var(--header-cyan); background: #222; color: white; outline: none; }
-
-/* Glossy Modal */
-.modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); }
-.modal-content { background: #1a1a1a; margin: 5% auto; padding: 30px; width: 85%; max-width: 800px; border: 2px solid var(--neon-blue); border-radius: 20px; box-shadow: 0 0 30px var(--neon-blue); animation: zoom 0.3s ease; }
-
-@keyframes zoom { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-.table-container { max-height: 350px; overflow-y: auto; margin: 20px 0; border: 1px solid #333; }
-table { width: 100%; border-collapse: collapse; }
-th, td { padding: 12px; border: 1px solid #333; text-align: center; }
-th { background: var(--bg-dark); color: var(--header-cyan); font-size: 11px; text-transform: uppercase; }
-td { font-family: monospace; color: var(--neon-blue); }
-
-button { cursor: pointer; border: none; border-radius: 10px; font-weight: bold; transition: 0.3s; padding: 10px 20px; }
-.bb84-btn { background: var(--bg-dark); color: var(--header-cyan); border: 1px solid var(--neon-blue); }
-.send-btn, .confirm-btn { background: var(--neon-blue); color: black; }
-.send-btn:hover { transform: scale(1.05); box-shadow: 0 0 15px var(--neon-blue); }
-
-/* Message Bubbles */
-.message { max-width: 70%; padding: 12px; border-radius: 12px; margin-bottom: 15px; position: relative; }
-.sent { align-self: flex-end; background: var(--accent-blue); border: 1px solid var(--neon-blue); }
-.received { align-self: flex-start; background: #2A2A2A; border: 1px solid rgba(255,255,255,0.1); }
-.binary { font-size: 10px; display: block; margin-top: 8px; opacity: 0.8; color: var(--neon-blue); }
-
-
-/* --- Quantum Particle Styles --- */
-.particles {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: -1; /* Behind the app-container */
-    pointer-events: none;
-}
-
-.particle {
-    position: absolute;
-    width: 6px; height: 6px;
-    background: var(--neon-blue);
-    border-radius: 50%;
-    filter: blur(1px);
-    opacity: 0.4;
-    box-shadow: 0 0 10px var(--neon-blue);
-    animation: float 20s infinite linear;
-}
-
-/* Random Positions & Speeds */
+/* --- Quantum Particles --- */
+.particles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+.particle { position: absolute; width: 6px; height: 6px; background: var(--neon-blue); border-radius: 50%; filter: blur(1px); opacity: 0.4; box-shadow: 0 0 10px var(--neon-blue); animation: float 20s infinite linear; }
 .particle:nth-child(1) { top: 15%; left: 15%; animation-duration: 18s; }
 .particle:nth-child(2) { top: 75%; left: 85%; animation-duration: 22s; }
 .particle:nth-child(3) { top: 50%; left: 40%; animation-duration: 15s; }
 .particle:nth-child(4) { top: 20%; left: 70%; animation-duration: 25s; }
 .particle:nth-child(5) { top: 85%; left: 20%; animation-duration: 20s; }
 
-@keyframes float {
-    0% { transform: translate(0, 0); opacity: 0.2; }
-    50% { transform: translate(60px, -80px); opacity: 0.5; }
-    100% { transform: translate(0, 0); opacity: 0.2; }
+@keyframes float { 0% { transform: translate(0, 0); opacity: 0.2; } 50% { transform: translate(60px, -80px); opacity: 0.6; } 100% { transform: translate(0, 0); opacity: 0.2; } }
+
+/* --- App Layout --- */
+.app-container { 
+    width: 95vw; height: 85vh; background: rgba(18, 18, 18, 0.75);
+    backdrop-filter: blur(20px); border: 1px solid rgba(91, 192, 190, 0.3);
+    border-radius: 20px; display: flex; box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+    overflow: hidden;
 }
+
+/* --- Sidebar --- */
+.sidebar { width: 300px; background: var(--sidebar-teal); border-right: 1px solid var(--cherry-main); display: flex; flex-direction: column; }
+.sidebar-header { padding: 20px; background: var(--bg-dark); border-bottom: 2px solid var(--neon-blue); }
+.contact { display: flex; align-items: center; padding: 15px; white-space: nowrap; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.avatar { flex: 0 0 45px; height: 45px; border-radius: 50%; background: var(--neon-blue); margin-right: 15px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: black; font-size: 18px; }
+.info { overflow: hidden; display: flex; flex-direction: column; }
+
+/* --- Chat Window --- */
+.chat-window { flex: 1; display: flex; flex-direction: column; background: rgba(15, 15, 15, 0.9); }
+.chat-header { padding: 15px 25px; background: var(--bg-dark); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+
+#key-status { 
+    background: var(--neon-blue) !important; color: black !important; 
+    padding: 8px 16px; border-radius: 20px; font-weight: 900; 
+    box-shadow: 0 0 20px var(--neon-blue); font-family: monospace; letter-spacing: 1px;
+}
+
+.chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; }
+
+/* --- Input Area --- */
+.input-area { width: 100%; padding: 20px; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); border-top: 1px solid var(--neon-blue); display: flex; gap: 12px; }
+input#msg-input { flex: 1; padding: 15px; border-radius: 25px; border: 1px solid var(--header-cyan); background: rgba(255,255,255,0.05); color: white; outline: none; font-size: 15px; }
+input#msg-input:focus { box-shadow: 0 0 10px rgba(91, 192, 190, 0.3); }
+
+button { cursor: pointer; border: none; border-radius: 12px; font-weight: bold; transition: 0.3s; padding: 12px 25px; font-size: 14px; letter-spacing: 1px; }
+.bb84-btn { background: var(--bg-dark); color: var(--header-cyan); border: 1px solid var(--neon-blue); }
+.send-btn, .confirm-btn { background: var(--neon-blue); color: black; width: 100%; margin-top: 15px; }
+button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px var(--neon-blue); filter: brightness(1.2); }
+
+/* --- Modals (Popups) --- */
+.modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); }
+.modal-content { background: #1a1a1a; margin: 5% auto; padding: 35px; width: 90%; max-width: 850px; border: 2px solid var(--neon-blue); border-radius: 20px; box-shadow: 0 0 40px var(--neon-blue); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+@keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.table-container { max-height: 400px; overflow-y: auto; margin: 20px 0; border: 1px solid #333; border-radius: 10px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 15px; border-bottom: 1px solid #222; text-align: center; }
+th { background: rgba(255,255,255,0.05); color: white; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+td { font-family: 'Courier New', monospace; font-size: 15px; }
+
+.close { float: right; font-size: 28px; color: gray; cursor: pointer; }
+.close:hover { color: white; }
+
+/* --- Chat Bubbles --- */
+.message { max-width: 70%; padding: 15px; border-radius: 15px; margin-bottom: 15px; line-height: 1.4; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+.sent { align-self: flex-end; background: linear-gradient(135deg, var(--accent-blue), #003366); border: 1px solid var(--neon-blue); border-bottom-right-radius: 2px; }
+.received { align-self: flex-start; background: rgba(42, 42, 42, 0.9); border: 1px solid rgba(255,255,255,0.1); border-bottom-left-radius: 2px; }
+.binary { font-family: monospace; font-size: 11px; display: block; margin-top: 8px; opacity: 0.9; color: var(--header-cyan); padding: 5px; background: rgba(0,0,0,0.3); border-radius: 5px; }
