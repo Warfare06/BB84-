@@ -168,9 +168,12 @@ function displayMessage(user, text, bin, type) {
 
 function addSystemMessage(t) {
     const div = document.createElement('div');
-    div.style = "text-align:center; font-size:12px; color: #5BC0BE; margin: 15px; font-weight: bold; background: rgba(91, 192, 190, 0.1); padding: 5px; border-radius: 5px;";
+    div.className = "system-msg"; // This triggers the new Neon CSS
     div.innerText = t;
-    document.getElementById('chat-box').appendChild(div);
+    
+    const box = document.getElementById('chat-box');
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight; // Auto-scroll to bottom
 }
 
 function closeModal() { document.getElementById('conversionModal').style.display = "none"; }
