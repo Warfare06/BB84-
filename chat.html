@@ -7,15 +7,17 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <audio id="snd-key" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3" preload="auto"></audio>
+    <audio id="snd-send" src="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3" preload="auto"></audio>
+    <audio id="snd-recv" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" preload="auto"></audio>
+
+    <div id="toast" class="toast">⚠️ Warning Message</div>
+
     <div class="dandelions">
-        <div class="dandelion"></div>
-        <div class="dandelion"></div>
-        <div class="dandelion"></div>
-        <div class="dandelion"></div>
-        <div class="dandelion"></div>
-        <div class="dandelion"></div>
-        <div class="dandelion"></div>
-        <div class="dandelion"></div>
+        <div class="dandelion"></div><div class="dandelion"></div>
+        <div class="dandelion"></div><div class="dandelion"></div>
+        <div class="dandelion"></div><div class="dandelion"></div>
+        <div class="dandelion"></div><div class="dandelion"></div>
     </div>
 
     <div id="conversionModal" class="modal">
@@ -28,11 +30,7 @@
                 <table id="conversionTable">
                     <thead>
                         <tr>
-                            <th>Char</th>
-                            <th>ASCII</th>
-                            <th>Binary</th>
-                            <th>XOR (Key)</th>
-                            <th>Final Result</th>
+                            <th>Char</th><th>ASCII</th><th>Binary</th><th>XOR (Key)</th><th>Final Result</th>
                         </tr>
                     </thead>
                     <tbody id="modal-body"></tbody>
@@ -52,11 +50,7 @@
                 <table id="decryptionTable">
                     <thead>
                         <tr>
-                            <th>Recv Binary</th>
-                            <th>Decimal</th>
-                            <th>XOR (Key)</th>
-                            <th>ASCII</th>
-                            <th>Final Char</th>
+                            <th>Recv Binary</th><th>Decimal</th><th>XOR (Key)</th><th>ASCII</th><th>Final Char</th>
                         </tr>
                     </thead>
                     <tbody id="dec-modal-body"></tbody>
@@ -107,7 +101,7 @@
 
             <footer class="input-area">
                 <button class="bb84-btn" onclick="generateBB84Key()">KEY GEN</button>
-                <input type="text" id="msg-input" placeholder="Type secure message..." onkeypress="if(event.key === 'Enter') sendMessage()">
+                <input type="text" id="msg-input" placeholder="Type secure message..." onkeypress="if(event.key === 'Enter') sendMessage()" autocomplete="off">
                 <button class="send-btn" onclick="sendMessage()">SEND</button>
             </footer>
         </main>
