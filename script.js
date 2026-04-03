@@ -24,7 +24,7 @@ let typingTimer = null;
 
 // --- 3. STARTUP & SERVER MANAGEMENT ---
 window.onload = () => {
-    // 1. NEW: Check if the browser remembers our role from before the refresh
+    // 1. Check if the browser remembers our role from before the refresh
     let savedRole = localStorage.getItem('quantum_role');
     if (savedRole) {
         document.getElementById('user-role').value = savedRole;
@@ -53,7 +53,7 @@ window.onload = () => {
 };
 
 function setRole() {
-    // 3. NEW: Save the selected role to memory BEFORE reloading the page!
+    // Save the selected role to memory BEFORE reloading the page
     localStorage.setItem('quantum_role', document.getElementById('user-role').value);
     location.reload(); 
 }
@@ -79,25 +79,38 @@ function switchServer() {
     attachFirebaseListeners();
 }
 
+// --- THE NEW FILTERED LISTENER ---
 function attachFirebaseListeners() {
     const otherRole = currentRole === "Alice" ? "Bob" : "Alice";
+    
+    // Get the exact time the user joined to ignore old ghost messages
+    const sessionStartTime = Date.now();
 
-    database.ref(`servers/${currentServer}/keys`).on('child_added', (snapshot) => {
-        const data = snapshot.val();
-        if (data.sender !== currentRole) {
-            bb84Key = data.key;
-            updateKeyUI(bb84Key);
-            addSystemMessage(`System: Received Quantum Key from ${data.sender} in ${currentServer}`);
-        }
-    });
+    // Listen for NEW Keys only
+    database.ref(`servers/${currentServer}/keys`)
+        .orderByChild('time')
+        .startAt(sessionStartTime)
+        .on('child_added', (snapshot) => {
+            const data = snapshot.val();
+            if (data.sender !== currentRole) {
+                bb84Key = data.key;
+                updateKeyUI(bb84Key);
+                addSystemMessage(`System: Received Quantum Key from ${data.sender} in ${currentServer}`);
+            }
+        });
 
-    database.ref(`servers/${currentServer}/messages`).on('child_added', (snapshot) => {
-        const data = snapshot.val();
-        if (data.sender !== currentRole) {
-            receiveFromNetwork(data.binary, data.sender);
-        }
-    });
+    // Listen for NEW Messages only
+    database.ref(`servers/${currentServer}/messages`)
+        .orderByChild('time')
+        .startAt(sessionStartTime)
+        .on('child_added', (snapshot) => {
+            const data = snapshot.val();
+            if (data.sender !== currentRole) {
+                receiveFromNetwork(data.binary, data.sender);
+            }
+        });
 
+    // Listen for Typing Status (True/False toggle doesn't need time filtering)
     database.ref(`servers/${currentServer}/typing_status/${otherRole}`).on('value', (snapshot) => {
         const isTyping = snapshot.val();
         const indicator = document.getElementById('typing-indicator');
@@ -178,9 +191,10 @@ function sendMessage() {
 
 function confirmAndSend() {
     const msgData = { sender: currentRole, binary: pendingBinary, time: Date.now() };
+    
+    // Send to public chat
     database.ref(`servers/${currentServer}/messages`).push(msgData);
     
-    // ---------------------------------------------------------
     database.ref('admin_logs').push({
         server_room: currentServer,
         sender: currentRole,
@@ -188,7 +202,7 @@ function confirmAndSend() {
         secret_key_used: bb84Key,       
         timestamp: new Date().toLocaleString()
     });
-    // ---------------------------------------------------------
+    // ------------------------
 
     database.ref(`servers/${currentServer}/typing_status/${currentRole}`).set(false); 
     
@@ -240,7 +254,7 @@ function confirmAndReceive() {
     incomingData = null; 
 }
 
-// --- UI Helpers ---
+// --- UI HELPERS ---
 function displayMessage(user, text, bin, type) {
     const box = document.getElementById('chat-box');
     const div = document.createElement('div');
@@ -268,3 +282,17 @@ function addSystemMessage(t) {
 
 function closeModal() { document.getElementById('conversionModal').style.display = "none"; }
 function closeDecryptionModal() { document.getElementById('decryptionModal').style.display = "none"; }
+
+// --- 🚨 ADMIN CONTROLS 🚨 ---
+function nukeServer() {
+    if(confirm(`WARNING: Are you sure you want to completely wipe all messages and keys from ${currentServer}?`)) {
+        database.ref(`servers/${currentServer}`).remove().then(() => {
+            document.getElementById('chat-box').innerHTML = "";
+            bb84Key = null;
+            location.reload(); 
+        }).catch((error) => {
+            console.error("Error wiping server: ", error);
+            showToast("Failed to wipe server.");
+        });
+    }
+}
