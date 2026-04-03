@@ -3,18 +3,33 @@ let currentRole = "Alice";
 let pendingText = "";
 let pendingBinary = [];
 
-// Startup Role Selection
+// Startup Role Selection & Network Listeners
 window.onload = () => {
     let roleInput = prompt("Enter your role (Alice or Bob):", "Alice");
     currentRole = (roleInput && roleInput.toLowerCase() === 'bob') ? "Bob" : "Alice";
     document.getElementById('user-role').value = currentRole;
     document.getElementById('chat-with').innerText = `Chatting as: ${currentRole}`;
     
-    // Listen for messages on the "Quantum Channel" (localStorage)
+    // LISTENERS for the "Quantum & Classical Channels"
     window.addEventListener('storage', (event) => {
+        // 1. Listen for new Keys (Quantum Channel Simulation)
+        if (event.key === 'quantum_key_sync') {
+            const data = JSON.parse(event.newValue);
+            if (data.sender !== currentRole) {
+                bb84Key = data.key;
+                const keyDisplay = document.getElementById('key-status');
+                keyDisplay.innerText = `KEY: ${bb84Key} (${bb84Key.toString(2).padStart(8, '0')})`;
+                keyDisplay.style.visibility = "visible";
+                addSystemMessage(`System: Received Shared Quantum Key from ${data.sender}`);
+            }
+        }
+        
+        // 2. Listen for new Messages (Classical Channel)
         if (event.key === 'quantum_chat_msg') {
             const data = JSON.parse(event.newValue);
-            if (data.sender !== currentRole) receiveFromNetwork(data.binary, data.sender);
+            if (data.sender !== currentRole) {
+                receiveFromNetwork(data.binary, data.sender);
+            }
         }
     });
 };
@@ -24,24 +39,34 @@ function setRole() {
     document.getElementById('chat-with').innerText = `Chatting as: ${currentRole}`;
 }
 
-// BB84 Key Generation Simulation
+// BB84 Key Generation & SYNCHRONIZATION
 function generateBB84Key() {
     bb84Key = Math.floor(Math.random() * 255) + 1;
+    
+    // Update local UI
     const keyDisplay = document.getElementById('key-status');
     keyDisplay.innerText = `KEY: ${bb84Key} (${bb84Key.toString(2).padStart(8, '0')})`;
     keyDisplay.style.visibility = "visible";
-    addSystemMessage(`System: ${currentRole} generated Quantum Key ${bb84Key}`);
+    addSystemMessage(`System: You generated Quantum Key ${bb84Key}`);
+
+    // SEND KEY TO OTHER USER (Simulating the QKD result)
+    const keyData = { sender: currentRole, key: bb84Key, timestamp: Date.now() };
+    localStorage.setItem('quantum_key_sync', JSON.stringify(keyData));
 }
 
-// Encryption Process (Triggered by Send)
+// Encryption Process
 function sendMessage() {
     const input = document.getElementById('msg-input');
     pendingText = input.value;
     if (!pendingText) return;
-    if (!bb84Key) { alert("Generate a Quantum Key (BB84) first!"); return; }
+    if (!bb84Key) { 
+        alert("CRITICAL: No Shared Key! One user must click 'KEY GEN' first."); 
+        return; 
+    }
 
     const modalBody = document.getElementById('modal-body');
-    modalBody.innerHTML = ""; pendingBinary = [];
+    modalBody.innerHTML = ""; 
+    pendingBinary = [];
     
     for (let i = 0; i < pendingText.length; i++) {
         let ascii = pendingText.charCodeAt(i);
@@ -54,7 +79,7 @@ function sendMessage() {
             <td>${ascii}</td>
             <td style="color: gray;">${ascii.toString(2).padStart(8, '0')}</td>
             <td>⊕ ${bb84Key}</td>
-            <td style="font-weight: bold;">${xorBin}</td>
+            <td style="font-weight: bold; color: #00C2FF;">${xorBin}</td>
         </tr>`;
     }
     document.getElementById('conversionModal').style.display = "block";
@@ -62,15 +87,23 @@ function sendMessage() {
 
 function confirmAndSend() {
     const msgData = { sender: currentRole, binary: pendingBinary, timestamp: Date.now() };
-    localStorage.setItem('quantum_chat_msg', JSON.stringify(msgData)); // Simulates socket transmission
+    // Classic Channel Transmission
+    localStorage.setItem('quantum_chat_msg', JSON.stringify(msgData)); 
+    
     displayMessage(currentRole, pendingText, pendingBinary.join(' '), 'sent');
     closeModal();
     document.getElementById('msg-input').value = "";
 }
 
-// Decryption Process (Binary back to String)
+// Decryption Process
 function receiveFromNetwork(binaryArray, sender) {
-    if (!bb84Key) { addSystemMessage("Encrypted data intercepted, but no Quantum Key found!"); return; }
+    // Check if we have the key to decrypt
+    if (!bb84Key) { 
+        addSystemMessage(`Warning: Message received from ${sender}, but you lack the Quantum Key!`); 
+        displayMessage(sender, "Locked Content 🔐", binaryArray.join(' '), 'received');
+        return; 
+    }
+    
     let decrypted = binaryArray.map(bin => String.fromCharCode(parseInt(bin, 2) ^ bb84Key)).join('');
     displayMessage(sender, decrypted, binaryArray.join(' '), 'received');
 }
