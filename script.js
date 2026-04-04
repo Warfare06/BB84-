@@ -314,6 +314,8 @@ function addSystemMessage(t) {
     box.scrollTop = box.scrollHeight;
 }
 
+function closeModal() { document.getElementById('keyGenModal').style.display = "none"; }
+
 function toggleCryptoLogs() {
     const sidebar = document.getElementById('crypto-sidebar');
     sidebar.classList.toggle('open');
