@@ -6,7 +6,6 @@
     --accent-blue: #0077FF;
 }
 
-
 * { box-sizing: border-box; margin: 0; padding: 0; transition: all 0.3s ease; }
 
 /* --- Deep Black Background --- */
@@ -47,7 +46,7 @@ body {
 /* --- Chat Window --- */
 .chat-window { 
     flex: 1; display: flex; flex-direction: column; background: transparent; 
-    position: relative; overflow: hidden; /* Traps the woodsprites inside */
+    position: relative; overflow: hidden;
 }
 .chat-header { padding: 15px 25px; background: #000; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; z-index: 10; }
 
@@ -58,13 +57,15 @@ body {
 
 .chat-box { 
     flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; 
-    position: relative; z-index: 1; /* Keeps text above woodsprites */
+    position: relative; z-index: 1;
 }
 
 /* --- 🌸 AVATAR WOODSPRITES (ATOKIRINA) 🌸 --- */
 .woodsprites-container { 
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-    z-index: 0; pointer-events: none; overflow: hidden; 
+    position: fixed; /* Pins to global background */
+    top: 0; left: 0; width: 100%; height: 100%; 
+    z-index: -1; /* Pushes behind the app container */
+    pointer-events: none; overflow: hidden; 
 }
 
 /* The glowing core of the seed */
@@ -76,21 +77,18 @@ body {
     box-shadow: 0 0 10px #fff, 0 0 20px var(--neon-blue), 0 0 40px var(--header-cyan);
     opacity: 0; 
     animation: floatUp 20s infinite linear, sway 5s infinite ease-in-out, pulseSprite 2s infinite alternate; 
+    transition: translate 0.5s cubic-bezier(0.25, 1, 0.5, 1); /* Smooth mouse avoidance */
 }
 
-/* The ethereal, jellyfish-like tentacles trailing beneath them */
+/* The ethereal trailing tentacles */
 .woodsprite::before {
-    content: '';
-    position: absolute;
-    top: 2px; left: -6px;
-    width: 18px; height: 35px;
-    border-radius: 50%;
+    content: ''; position: absolute; top: 2px; left: -6px;
+    width: 18px; height: 35px; border-radius: 50%;
     box-shadow: inset 0 -8px 15px rgba(0, 194, 255, 0.6);
-    opacity: 0.8;
-    filter: blur(1px);
+    opacity: 0.8; filter: blur(1px);
 }
 
-/* Positioning and slightly randomized timings for organic movement */
+/* Positions and Timings */
 .woodsprite:nth-child(1) { left: 10%; animation-duration: 25s, 6s, 2s; }
 .woodsprite:nth-child(2) { left: 25%; animation-duration: 20s, 4s, 2.5s; animation-delay: 5s, 1s, 0s; }
 .woodsprite:nth-child(3) { left: 40%; animation-duration: 28s, 7s, 1.8s; animation-delay: 2s, 0s, 0.5s; }
@@ -122,8 +120,7 @@ body {
 .message { 
     max-width: 70%; padding: 15px; border-radius: 15px; margin-bottom: 15px; line-height: 1.4; backdrop-filter: blur(10px);
     animation: slideInUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; transform-origin: bottom center;
-    white-space: pre-wrap;
-    word-wrap: break-word; 
+    white-space: pre-wrap; word-wrap: break-word; 
 }
 .sent { align-self: flex-end; background: rgba(0, 194, 255, 0.1); border: 1px solid var(--neon-blue); border-bottom-right-radius: 2px; box-shadow: 0 0 15px rgba(0, 194, 255, 0.3), inset 0 0 10px rgba(0, 194, 255, 0.1); }
 .received { align-self: flex-start; background: rgba(91, 192, 190, 0.1); border: 1px solid var(--header-cyan); border-bottom-left-radius: 2px; box-shadow: 0 0 15px rgba(91, 192, 190, 0.3), inset 0 0 10px rgba(91, 192, 190, 0.1); }
@@ -146,8 +143,7 @@ body {
     color: #ff4444 !important;
     box-shadow: 0 0 20px rgba(255, 0, 0, 0.5) !important;
     animation: flashRed 1.5s infinite;
-    font-size: 14px;
-    padding: 15px 30px;
+    font-size: 14px; padding: 15px 30px;
 }
 @keyframes flashRed {
     0%, 100% { opacity: 1; text-shadow: 0 0 10px red; }
@@ -206,7 +202,6 @@ td { font-family: 'Courier New', monospace; font-size: 15px; }
 
 .crypto-log-content { flex: 1; overflow-y: auto; padding: 15px; }
 
-/* Log Entry Cards */
 .log-entry { 
     background: #111; padding: 10px; border-radius: 8px; border: 1px solid #333; 
     margin-bottom: 15px; font-family: monospace; font-size: 11px;
