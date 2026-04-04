@@ -42,6 +42,7 @@ window.onload = () => {
         }, 1500);
     });
 
+    // Shift + Enter Logic
     document.getElementById('msg-input').addEventListener('keydown', function(event) {
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault(); 
@@ -106,6 +107,7 @@ function attachFirebaseListeners() {
         }
     });
 
+    // 🚨 Eve Attack Listener
     database.ref(`servers/${currentServer}/alerts`).orderByChild('time').startAt(sessionStartTime).on('child_added', (snapshot) => {
         const alertData = snapshot.val();
         if (alertData.type === "EVE_INTERCEPT") {
@@ -325,3 +327,31 @@ function triggerEveAttack() {
     if (!bb84Key) { showToast("No active quantum key to intercept!"); return; }
     database.ref(`servers/${currentServer}/alerts`).push({ type: "EVE_INTERCEPT", time: Date.now() });
 }
+
+// --- 7. WOODSPRITE MOUSE REPULSION ---
+document.addEventListener('mousemove', (e) => {
+    const sprites = document.querySelectorAll('.woodsprite');
+    const repelRadius = 150; 
+
+    sprites.forEach(sprite => {
+        const rect = sprite.getBoundingClientRect();
+        const spriteX = rect.left + rect.width / 2;
+        const spriteY = rect.top + rect.height / 2;
+
+        const dx = spriteX - e.clientX;
+        const dy = spriteY - e.clientY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < repelRadius) {
+            const force = (repelRadius - distance) / repelRadius;
+            const maxPush = 100; 
+            
+            const pushX = (dx / distance) * force * maxPush;
+            const pushY = (dy / distance) * force * maxPush;
+
+            sprite.style.translate = `${pushX}px ${pushY}px`;
+        } else {
+            sprite.style.translate = `0px 0px`;
+        }
+    });
+});
