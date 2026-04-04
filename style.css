@@ -79,7 +79,7 @@ body {
 .message { 
     max-width: 70%; padding: 15px; border-radius: 15px; margin-bottom: 15px; line-height: 1.4; backdrop-filter: blur(10px);
     animation: slideInUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; transform-origin: bottom center;
-    white-space: pre-wrap; /* This tells CSS to respect the Enter key formatting */
+    white-space: pre-wrap;
     word-wrap: break-word; 
 }
 .sent { align-self: flex-end; background: rgba(0, 194, 255, 0.1); border: 1px solid var(--neon-blue); border-bottom-right-radius: 2px; box-shadow: 0 0 15px rgba(0, 194, 255, 0.3), inset 0 0 10px rgba(0, 194, 255, 0.1); }
@@ -107,32 +107,17 @@ body {
     display: flex; gap: 12px; align-items: center; z-index: 10;
 }
 
-/* THE FIX: Recreating the perfect neon pill shape for the text area */
 textarea#msg-input { 
-    flex: 1; 
-    padding: 15px 20px; 
-    border-radius: 25px; /* Restores the pill shape */
-    border: 1px solid var(--header-cyan); 
-    background: #111; 
-    color: white; 
-    outline: none; 
-    font-size: 15px; 
-    font-family: 'Inter', 'Segoe UI', sans-serif;
-    resize: none; /* Removes the ugly drag corner */
-    height: 50px; /* Locks it to the exact height of the original input */
-    line-height: 20px;
-    overflow: hidden; /* Removes the ugly scrollbar */
-    box-sizing: border-box;
+    flex: 1; padding: 15px 20px; border-radius: 25px; border: 1px solid var(--header-cyan); 
+    background: #111; color: white; outline: none; font-size: 15px; font-family: 'Inter', 'Segoe UI', sans-serif;
+    resize: none; height: 50px; line-height: 20px; overflow: hidden; box-sizing: border-box;
 }
 textarea#msg-input:focus { box-shadow: 0 0 10px rgba(91, 192, 190, 0.3); }
 
 button { cursor: pointer; border: none; border-radius: 12px; font-weight: bold; transition: 0.3s; padding: 12px 25px; font-size: 14px; letter-spacing: 1px; }
 .bb84-btn { background: #111; color: var(--header-cyan); border: 1px solid var(--neon-blue); }
-.send-btn, .confirm-btn { background: var(--neon-blue); color: black; }
-.confirm-btn { width: 100%; margin-top: 15px; }
+.send-btn { background: var(--neon-blue); color: black; }
 button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px var(--neon-blue); filter: brightness(1.2); }
-
-/* Cyber Button Click Effect */
 button:active { transform: scale(0.95) translateY(2px) !important; box-shadow: 0 0 50px var(--neon-blue), inset 0 0 20px var(--neon-blue) !important; transition: all 0.05s ease; }
 
 /* --- Modals (Popups) --- */
@@ -145,8 +130,6 @@ table { width: 100%; border-collapse: collapse; }
 th, td { padding: 15px; border-bottom: 1px solid #222; text-align: center; }
 th { background: #111; color: white; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
 td { font-family: 'Courier New', monospace; font-size: 15px; }
-.close { float: right; font-size: 28px; color: gray; cursor: pointer; }
-.close:hover { color: white; }
 
 /* --- 🚨 EVE ATTACK ALERT 🚨 --- */
 .system-msg.alert {
@@ -162,3 +145,29 @@ td { font-family: 'Courier New', monospace; font-size: 15px; }
     0%, 100% { opacity: 1; text-shadow: 0 0 10px red; }
     50% { opacity: 0.6; text-shadow: none; }
 }
+
+/* --- RIGHT SIDEBAR (CRYPTO LOGS) --- */
+.log-btn { 
+    background: transparent; color: var(--header-cyan); border: 1px solid var(--header-cyan); 
+    padding: 8px 15px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: 0.3s;
+}
+.log-btn:hover { background: rgba(91, 192, 190, 0.2); box-shadow: 0 0 10px rgba(91, 192, 190, 0.4); }
+
+.crypto-sidebar { 
+    width: 0; 
+    background: #080808; border-left: 1px solid #222; 
+    display: flex; flex-direction: column; transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    overflow: hidden; white-space: nowrap;
+}
+.crypto-sidebar.open { width: 350px; } 
+
+.crypto-log-content { flex: 1; overflow-y: auto; padding: 15px; }
+
+/* Log Entry Cards */
+.log-entry { 
+    background: #111; padding: 10px; border-radius: 8px; border: 1px solid #333; 
+    margin-bottom: 15px; font-family: monospace; font-size: 11px;
+}
+.log-entry table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.log-entry th, .log-entry td { padding: 4px; text-align: center; border-bottom: 1px solid #222; }
+.log-entry th { color: gray; font-size: 10px; text-transform: uppercase; }
