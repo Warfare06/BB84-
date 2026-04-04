@@ -46,7 +46,7 @@ body {
 /* --- Chat Window --- */
 .chat-window { 
     flex: 1; display: flex; flex-direction: column; background: transparent; 
-    position: relative; overflow: hidden; /* Traps the dandelions inside */
+    position: relative; overflow: hidden; /* Traps the woodsprites inside */
 }
 .chat-header { padding: 15px 25px; background: #000; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; z-index: 10; }
 
@@ -57,30 +57,63 @@ body {
 
 .chat-box { 
     flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; 
-    position: relative; z-index: 1; /* Keeps text above dandelions */
+    position: relative; z-index: 1; /* Keeps text above woodsprites */
 }
 
-/* --- Floating Dandelions (Now trapped inside Chat Window) --- */
-.dandelions { 
+/* --- 🌸 AVATAR WOODSPRITES (ATOKIRINA) 🌸 --- */
+.woodsprites-container { 
     position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
     z-index: 0; pointer-events: none; overflow: hidden; 
 }
-.dandelion { 
-    position: absolute; width: 4px; height: 4px; background: white; border-radius: 50%; 
-    box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.4), 0 0 30px 10px rgba(91, 192, 190, 0.2); 
-    opacity: 0; animation: floatUp 20s infinite linear, sway 5s infinite ease-in-out; 
-}
-.dandelion:nth-child(1) { left: 10%; animation-duration: 25s, 6s; }
-.dandelion:nth-child(2) { left: 25%; animation-duration: 20s, 4s; animation-delay: 5s, 1s; }
-.dandelion:nth-child(3) { left: 40%; animation-duration: 28s, 7s; animation-delay: 2s, 0s; }
-.dandelion:nth-child(4) { left: 60%; animation-duration: 22s, 5s; animation-delay: 10s, 2s; }
-.dandelion:nth-child(5) { left: 75%; animation-duration: 30s, 8s; animation-delay: 4s, 1s; }
-.dandelion:nth-child(6) { left: 85%; animation-duration: 24s, 5s; animation-delay: 8s, 0s; }
-.dandelion:nth-child(7) { left: 50%; animation-duration: 18s, 4s; animation-delay: 15s, 2s; }
-.dandelion:nth-child(8) { left: 90%; animation-duration: 26s, 6s; animation-delay: 12s, 3s; }
 
-@keyframes floatUp { 0% { bottom: -10%; opacity: 0; transform: scale(0.5); } 10% { opacity: 0.8; } 90% { opacity: 0.8; } 100% { bottom: 110%; opacity: 0; transform: scale(1.2); } }
-@keyframes sway { 0%, 100% { margin-left: 0; } 50% { margin-left: 50px; } }
+/* The glowing core of the seed */
+.woodsprite { 
+    position: absolute; 
+    width: 6px; height: 6px; 
+    background: #ffffff; 
+    border-radius: 50%; 
+    box-shadow: 0 0 10px #fff, 0 0 20px var(--neon-blue), 0 0 40px var(--header-cyan);
+    opacity: 0; 
+    animation: floatUp 20s infinite linear, sway 5s infinite ease-in-out, pulseSprite 2s infinite alternate; 
+}
+
+/* The ethereal, jellyfish-like tentacles trailing beneath them */
+.woodsprite::before {
+    content: '';
+    position: absolute;
+    top: 2px; left: -6px;
+    width: 18px; height: 35px;
+    border-radius: 50%;
+    box-shadow: inset 0 -8px 15px rgba(0, 194, 255, 0.6);
+    opacity: 0.8;
+    filter: blur(1px);
+}
+
+/* Positioning and slightly randomized timings for organic movement */
+.woodsprite:nth-child(1) { left: 10%; animation-duration: 25s, 6s, 2s; }
+.woodsprite:nth-child(2) { left: 25%; animation-duration: 20s, 4s, 2.5s; animation-delay: 5s, 1s, 0s; }
+.woodsprite:nth-child(3) { left: 40%; animation-duration: 28s, 7s, 1.8s; animation-delay: 2s, 0s, 0.5s; }
+.woodsprite:nth-child(4) { left: 60%; animation-duration: 22s, 5s, 2.2s; animation-delay: 10s, 2s, 1s; }
+.woodsprite:nth-child(5) { left: 75%; animation-duration: 30s, 8s, 2s; animation-delay: 4s, 1s, 0s; }
+.woodsprite:nth-child(6) { left: 85%; animation-duration: 24s, 5s, 2.6s; animation-delay: 8s, 0s, 0.2s; }
+.woodsprite:nth-child(7) { left: 50%; animation-duration: 18s, 4s, 1.9s; animation-delay: 15s, 2s, 0.8s; }
+.woodsprite:nth-child(8) { left: 90%; animation-duration: 26s, 6s, 2.1s; animation-delay: 12s, 3s, 0s; }
+
+/* The Movements */
+@keyframes floatUp { 
+    0% { bottom: -10%; opacity: 0; transform: scale(0.5); } 
+    15% { opacity: 0.8; } 
+    85% { opacity: 0.8; } 
+    100% { bottom: 110%; opacity: 0; transform: scale(1.2); } 
+}
+@keyframes sway { 
+    0%, 100% { margin-left: -30px; } 
+    50% { margin-left: 30px; } 
+}
+@keyframes pulseSprite {
+    0% { transform: scale(0.85); box-shadow: 0 0 10px #fff, 0 0 15px var(--neon-blue); }
+    100% { transform: scale(1.15); box-shadow: 0 0 15px #fff, 0 0 30px var(--neon-blue), 0 0 50px var(--header-cyan); }
+}
 
 /* --- Chat Bubbles --- */
 @keyframes slideInUp { 0% { opacity: 0; transform: translateY(20px) scale(0.95); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
