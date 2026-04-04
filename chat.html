@@ -20,43 +20,23 @@
         <div class="dandelion"></div><div class="dandelion"></div>
     </div>
 
-    <div id="conversionModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal()">&times;</span>
-            <h2 style="color: #00C2FF;">Quantum Encryption Process</h2>
-            <p style="color: gray; margin-bottom: 15px;">Applying Shared Key to encrypt...</p>
+    <div id="keyGenModal" class="modal">
+        <div class="modal-content" style="border-color: #5BC0BE; max-width: 950px; box-shadow: 0 0 40px rgba(91, 192, 190, 0.4);">
+            <h2 style="color: #5BC0BE;">BB84 Quantum Key Exchange</h2>
+            <p style="color: gray; margin-bottom: 15px;">Simulating photon polarization and basis reconciliation over quantum channel...</p>
             
-            <div class="table-container">
-                <table id="conversionTable">
-                    <thead>
-                        <tr>
-                            <th>Char</th><th>ASCII</th><th>Binary</th><th>XOR (Key)</th><th>Final Result</th>
-                        </tr>
-                    </thead>
-                    <tbody id="modal-body"></tbody>
+            <div class="table-container" style="overflow-x: auto;">
+                <table id="bb84Table" style="font-size: 14px; text-align: center; width: 100%;">
+                    <tr id="row-bits"><th style="text-align:left; color: white;">Alice's Bits</th></tr>
+                    <tr id="row-s-bases"><th style="text-align:left; color: #00C2FF;">Alice's Bases</th></tr>
+                    <tr id="row-r-bases"><th style="text-align:left; color: #5BC0BE;">Bob's Bases</th></tr>
+                    <tr id="row-match"><th style="text-align:left; color: white;">Basis Match?</th></tr>
+                    <tr id="row-key"><th style="text-align:left; color: var(--neon-blue);">Final Key Bit</th></tr>
                 </table>
             </div>
-            <button class="confirm-btn" onclick="confirmAndSend()">ENCRYPT & SEND TO NETWORK</button>
-        </div>
-    </div>
-
-    <div id="decryptionModal" class="modal">
-        <div class="modal-content" style="border-color: #5BC0BE; box-shadow: 0 0 40px rgba(91, 192, 190, 0.4);">
-            <span class="close" onclick="closeDecryptionModal()">&times;</span>
-            <h2 style="color: #5BC0BE;">Incoming Encrypted Data Detected</h2>
-            <p style="color: gray; margin-bottom: 15px;">Applying Shared Key to decrypt...</p>
-            
-            <div class="table-container">
-                <table id="decryptionTable">
-                    <thead>
-                        <tr>
-                            <th>Recv Binary</th><th>Decimal</th><th>XOR (Key)</th><th>ASCII</th><th>Final Char</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dec-modal-body"></tbody>
-                </table>
+            <div id="key-gen-status" style="margin-top: 20px; color: var(--header-cyan); font-weight: bold; text-align: center; font-family: monospace; font-size: 16px;">
+                Initializing Quantum Channel...
             </div>
-            <button class="confirm-btn" style="background: #5BC0BE; color: black; margin-top: 15px;" onclick="confirmAndReceive()">DECRYPT & READ MESSAGE</button>
         </div>
     </div>
 
@@ -93,12 +73,15 @@
                     🚨 SIMULATE INTERCEPTION
                 </button>
             </div>
-            </aside>
+        </aside>
 
         <main class="chat-window">
             <header class="chat-header">
                 <h3 id="chat-with" style="color: white;">Chatting as: Alice</h3>
-                <span id="key-status" style="visibility: hidden;">Key: None</span>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <span id="key-status" style="visibility: hidden;">Key: None</span>
+                    <button onclick="toggleCryptoLogs()" class="log-btn">📄 View Crypto Logs</button>
+                </div>
             </header>
 
             <div id="chat-box" class="chat-box"></div>
@@ -107,17 +90,24 @@
 
             <footer class="input-area">
                 <button class="bb84-btn" onclick="generateBB84Key()">KEY GEN</button>
-                
                 <textarea id="msg-input" placeholder="Type secure message..." autocomplete="off"></textarea>
-                
                 <button class="send-btn" onclick="sendMessage()">SEND</button>
             </footer>
         </main>
+
+        <aside class="crypto-sidebar" id="crypto-sidebar">
+            <div class="sidebar-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="color: var(--neon-blue); font-size: 16px;">Encryption Logs</h3>
+                <span class="close" style="font-size: 24px;" onclick="toggleCryptoLogs()">&times;</span>
+            </div>
+            <div id="crypto-log-content" class="crypto-log-content">
+                </div>
+        </aside>
+
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    
     <script src="script.js"></script>
 </body>
 </html>
