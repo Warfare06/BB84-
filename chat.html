@@ -1,149 +1,26 @@
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#050b18">
-  <title>Quantum Chat | BB84 PTRP</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07111f">
+  <title>BB84 PTRP Lab</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="chat-page">
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="toast" class="toast" role="status"></div>
 
-  <section id="keyGenModal" class="modal" role="dialog" aria-modal="true">
-    <div class="modal-content">
-      <div class="modal-heading">
-        <div>
-          <p class="eyebrow">QUANTUM CHANNEL</p>
-          <h2>BB84 Key Exchange</h2>
-        </div>
-        <button class="icon-close" onclick="closeModal()" aria-label="Close">×</button>
-      </div>
-
-      <p class="muted">
-        Classical random-number model of BB84. No physical quantum hardware is used.
-      </p>
-
-      <div class="table-container">
-        <table id="bb84Table">
-          <tbody>
-            <tr id="row-bits"><th>Alice's bits</th></tr>
-            <tr id="row-s-bases"><th>Alice's bases</th></tr>
-            <tr id="row-e-bases"><th>Eve's bases</th></tr>
-            <tr id="row-r-bases"><th>Bob's bases</th></tr>
-            <tr id="row-match"><th>Bases match?</th></tr>
-            <tr id="row-key"><th>Sifted bit</th></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <p id="key-gen-status" class="modal-status">Preparing simulation…</p>
-      <p id="key-result" class="key-result"></p>
-    </div>
-  </section>
-
-  <section id="analyticsModal" class="modal" role="dialog" aria-modal="true">
-    <div class="modal-content analytics-modal-content">
-      <div class="modal-heading">
-        <div>
-          <p class="eyebrow">PTRP LAB</p>
-          <h2>Probability & Random Processes</h2>
-        </div>
-        <button class="icon-close" onclick="toggleAnalytics(false)"
-                aria-label="Close">×</button>
-      </div>
-
-      <p class="muted">
-        Monte Carlo experiments compare empirical measurements with theoretical values.
-      </p>
-
-      <div class="analytics-controls">
-        <label for="trial-count">Trials</label>
-        <select id="trial-count">
-          <option value="100">100</option>
-          <option value="500" selected>500</option>
-          <option value="1000">1,000</option>
-          <option value="5000">5,000</option>
-        </select>
-
-        <label class="check-label">
-          <input id="analytics-eve" type="checkbox">
-          Include Eve in experiment
-        </label>
-
-        <button id="run-experiment-btn" class="primary-btn"
-                onclick="runMonteCarlo()">Run experiment</button>
-      </div>
-
-      <div class="metric-grid">
-        <div class="metric-card">
-          <span>Basis-match probability</span>
-          <strong id="metric-match">—</strong>
-          <small>Theory: 50%</small>
-        </div>
-        <div class="metric-card">
-          <span>Mean sifted bits</span>
-          <strong id="metric-sifted">—</strong>
-          <small>Theory for 128 photons: 64</small>
-        </div>
-        <div class="metric-card">
-          <span>QBER</span>
-          <strong id="metric-qber">—</strong>
-          <small id="metric-qber-note">Run an experiment</small>
-        </div>
-        <div class="metric-card">
-          <span>Eve</span>
-          <strong id="metric-eve">—</strong>
-          <small>Ideal intercept-resend QBER ≈ 25%</small>
-        </div>
-      </div>
-
-      <div class="charts-grid">
-        <div class="chart-card">
-          <h3>Basis matching</h3>
-          <p>Observed versus theoretical probability</p>
-          <canvas id="matchChart"></canvas>
-        </div>
-        <div class="chart-card">
-          <h3>Sifted-key distribution</h3>
-          <p>Retained bits per 128 photons</p>
-          <canvas id="siftChart"></canvas>
-        </div>
-        <div class="chart-card">
-          <h3>QBER across trials</h3>
-          <p>Observed bit error rate</p>
-          <canvas id="qberChart"></canvas>
-        </div>
-        <div class="chart-card">
-          <h3>Probability model</h3>
-          <div class="formula-list">
-            <div><span>Basis match</span><code>P(M) = 1/2</code></div>
-            <div><span>Sifted length</span><code>K ~ Binomial(N, 1/2)</code></div>
-            <div><span>Expected length</span><code>E[K] = N/2</code></div>
-            <div><span>Variance</span><code>Var(K) = N/4</code></div>
-            <div><span>QBER with Eve</span><code>≈ 1/4</code></div>
-          </div>
-        </div>
-      </div>
-
-      <p id="experiment-summary" class="experiment-summary">
-        Run an experiment to populate the graphs.
-      </p>
-      <p class="disclaimer">
-        An 11% threshold is illustrative only, not a security proof.
-      </p>
-    </div>
-  </section>
-
-  <div class="app-container">
+  <div class="app-shell">
     <aside class="sidebar">
-      <div class="sidebar-header">
-        <p class="eyebrow">BB84 • PTRP PROJECT</p>
+      <div class="side-brand">
+        <p class="eyebrow">BB84 · PTRP PROJECT</p>
         <h2>Quantum Network</h2>
+      </div>
 
-        <label class="field-label" for="server-select">Room</label>
-        <select id="server-select" onchange="switchServer()">
+      <div class="side-controls">
+        <label for="room-select">Room</label>
+        <select id="room-select">
           <option value="server_1">Server 1 · Alpha</option>
           <option value="server_2">Server 2 · Beta</option>
           <option value="server_3">Server 3 · Gamma</option>
@@ -151,85 +28,195 @@
           <option value="server_5">Server 5 · Epsilon</option>
         </select>
 
-        <label class="field-label" for="user-role">Your role</label>
-        <select id="user-role" onchange="setRole()">
+        <label for="role-select">Your role</label>
+        <select id="role-select">
           <option value="Alice">Alice · Sender</option>
           <option value="Bob">Bob · Receiver</option>
         </select>
       </div>
 
-      <div class="contact">
-        <div class="avatar" id="contact-avatar">B</div>
-        <div class="info">
-          <strong id="contact-name">Bob</strong>
-          <small>Chat participant</small>
-        </div>
+      <div class="person-card">
+        <div class="avatar alice-avatar">A</div>
+        <div><strong>Alice</strong><small>Sender</small></div>
+      </div>
+      <div class="person-card">
+        <div class="avatar bob-avatar">B</div>
+        <div><strong>Bob</strong><small>Receiver</small></div>
       </div>
 
-      <div class="contact eve-contact">
-        <div class="avatar eve-avatar">E</div>
-        <div class="info">
-          <strong>Eve</strong>
-          <small id="eve-state">● Attack disabled</small>
+      <div class="eve-card">
+        <div class="person-card no-border">
+          <div class="avatar eve-avatar">E</div>
+          <div><strong>Eve</strong><small id="eve-state">Attack disabled</small></div>
         </div>
-        <button id="eve-btn" class="danger-btn"
-                onclick="toggleEveAttack()">Enable Eve</button>
+        <label for="eve-probability">Interception probability <span id="eve-probability-label">100%</span></label>
+        <input id="eve-probability" type="range" min="0" max="100" step="5" value="100">
+        <button id="eve-toggle" class="danger-btn full-width">Enable Eve</button>
       </div>
 
-      <div class="sidebar-bottom">
-        <div class="status-pill">
-          <span class="status-dot"></span>
-          <span id="connection-state">Connecting to Firebase…</span>
-        </div>
-        <p>Prototype chat · BB84 simulation</p>
+      <div class="side-bottom">
+        <div><span class="status-dot"></span><span id="connection-state">Connecting…</span></div>
+        <small>Simulation · not production encryption</small>
       </div>
     </aside>
 
-    <main class="chat-window">
-      <header class="chat-header">
+    <main class="main-panel">
+      <header class="topbar">
         <div>
           <p class="eyebrow">DEMO COMMUNICATION ROOM</p>
-          <h2 id="chat-with">Chatting as: Alice</h2>
-          <small id="room-label">Server 1 · Alpha</small>
+          <h1 id="room-title">Chatting as Alice</h1>
+          <p id="peer-status" class="muted">Quantum channel ready</p>
         </div>
-        <div class="header-actions">
-          <span id="key-status" class="key-status">No shared key</span>
-          <button class="secondary-btn" onclick="toggleCryptoLogs()">Crypto logs</button>
-          <button class="secondary-btn" onclick="toggleAnalytics(true)">PTRP analytics</button>
-          <button class="secondary-btn" onclick="exportExperimentCSV()">Export CSV</button>
+        <div class="top-actions">
+          <span id="key-status" class="key-badge">No accepted key</span>
+          <button class="secondary-btn" id="open-sim">BB84 simulator</button>
+          <button class="secondary-btn" id="open-analytics">PTRP analytics</button>
+          <button class="secondary-btn" id="open-logs">Crypto logs</button>
+          <button class="secondary-btn" id="export-csv">Export CSV</button>
+          <button class="secondary-btn" id="print-report">Report</button>
         </div>
       </header>
 
-      <div class="notice-banner">
-        Simulation mode: BB84 and XOR messaging are demonstrations, not production-grade encryption.
+      <div class="notice">
+        This website simulates BB84 using classical random numbers. Messages and keys are not protected by real quantum cryptography.
       </div>
 
-      <div id="chat-box" class="chat-box" aria-live="polite"></div>
-      <div id="typing-indicator" class="typing-indicator">Peer is typing…</div>
+      <div class="quick-stats">
+        <div class="quick-stat"><span>Basis match</span><strong id="stat-match">—</strong></div>
+        <div class="quick-stat"><span>Sample QBER</span><strong id="stat-qber">—</strong></div>
+        <div class="quick-stat"><span>Final demo bits</span><strong id="stat-key-length">0</strong></div>
+        <div class="quick-stat"><span>Eve</span><strong id="stat-eve">OFF</strong></div>
+      </div>
 
-      <footer class="input-area">
-        <button class="bb84-btn" id="keygen-btn" onclick="generateBB84Key()">
-          Generate BB84 key
-        </button>
-        <textarea id="msg-input" placeholder="Type a message…"
-                  aria-label="Message" rows="1"></textarea>
-        <button class="send-btn" onclick="sendMessage()">Send ↗</button>
-      </footer>
+      <section id="chat-messages" class="chat-messages" aria-live="polite"></section>
+
+      <div class="typing-line" id="typing-line"></div>
+      <form id="message-form" class="composer">
+        <button type="button" id="generate-key" class="outline-btn">Generate BB84 key</button>
+        <textarea id="message-input" rows="1" maxlength="2000" placeholder="Type a message…" aria-label="Message"></textarea>
+        <button class="send-btn" type="submit">Send ↗</button>
+      </form>
     </main>
 
-    <aside class="crypto-sidebar" id="crypto-sidebar">
-      <div class="log-header">
-        <div>
-          <p class="eyebrow">TRACE VIEW</p>
-          <h3>Encryption logs</h3>
-        </div>
-        <button class="icon-close" onclick="toggleCryptoLogs()">×</button>
+    <aside id="logs-panel" class="logs-panel">
+      <div class="panel-title">
+        <div><p class="eyebrow">TRACE VIEW</p><h3>Crypto logs</h3></div>
+        <button class="icon-btn" id="close-logs" aria-label="Close logs">×</button>
       </div>
-      <div id="crypto-log-content" class="crypto-log-content">
-        <p class="muted empty-state">Simulation traces appear here.</p>
-      </div>
+      <div id="crypto-logs" class="crypto-logs"><p class="muted">Simulation events will appear here.</p></div>
     </aside>
   </div>
+
+  <!-- BB84 simulator -->
+  <section id="sim-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="sim-title">
+    <div class="modal-card wide">
+      <div class="modal-heading">
+        <div><p class="eyebrow">QUANTUM CHANNEL</p><h2 id="sim-title">BB84 key exchange</h2></div>
+        <button class="icon-btn" data-close="sim-modal" aria-label="Close">×</button>
+      </div>
+      <p class="muted">Watch basis selection, Eve interception, Bob's measurements, sample disclosure and key acceptance.</p>
+
+      <div class="sim-toolbar">
+        <label>Photons
+          <select id="photon-count">
+            <option value="128">128</option>
+            <option value="256">256</option>
+            <option value="512" selected>512</option>
+            <option value="1024">1,024</option>
+          </select>
+        </label>
+        <button id="run-bb84" class="primary-btn">Run BB84 simulation</button>
+        <button id="step-bb84" class="secondary-btn">Next step</button>
+        <button id="reset-bb84" class="secondary-btn">Reset</button>
+      </div>
+
+      <div id="protocol-steps" class="protocol-steps">
+        <div class="protocol-step active"><span>01</span><strong>Prepare</strong><small>Alice chooses bits and bases</small></div>
+        <div class="protocol-step"><span>02</span><strong>Transmit</strong><small>Eve may intercept photons</small></div>
+        <div class="protocol-step"><span>03</span><strong>Measure</strong><small>Bob chooses measurement bases</small></div>
+        <div class="protocol-step"><span>04</span><strong>Sift</strong><small>Keep matching bases</small></div>
+        <div class="protocol-step"><span>05</span><strong>Test</strong><small>Reveal a sample and estimate QBER</small></div>
+        <div class="protocol-step"><span>06</span><strong>Post-process</strong><small>Model reconciliation and privacy amplification</small></div>
+      </div>
+
+      <div class="sim-metrics">
+        <div><span>Photons</span><strong id="sim-photons">—</strong></div>
+        <div><span>Matching bases</span><strong id="sim-matches">—</strong></div>
+        <div><span>Sample QBER</span><strong id="sim-qber">—</strong></div>
+        <div><span>Final demo bits</span><strong id="sim-final-bits">—</strong></div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="bb84-table">
+          <thead><tr>
+            <th>i</th><th>Alice bit</th><th>Alice basis</th><th>Eve basis</th>
+            <th>Bob basis</th><th>Bob bit</th><th>Match?</th><th>Sample?</th><th>Sifted bit</th>
+          </tr></thead>
+          <tbody id="bb84-table-body">
+            <tr><td colspan="9" class="empty-cell">Run a simulation to populate this table.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="sim-result" class="result-banner">Ready to simulate.</div>
+      <div class="modal-footer">
+        <button id="publish-key" class="primary-btn" disabled>Publish accepted demo key to Bob</button>
+        <p class="fine-print">Publishing transfers simulated key bits through Firebase. This is intentionally not presented as a secure QKD implementation.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PTRP analytics -->
+  <section id="analytics-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="analytics-title">
+    <div class="modal-card wide">
+      <div class="modal-heading">
+        <div><p class="eyebrow">PROBABILITY LAB</p><h2 id="analytics-title">PTRP analytics</h2></div>
+        <button class="icon-btn" data-close="analytics-modal" aria-label="Close">×</button>
+      </div>
+
+      <div class="analytics-controls">
+        <label>Monte Carlo trials
+          <select id="trial-count">
+            <option value="100">100</option><option value="500" selected>500</option>
+            <option value="1000">1,000</option><option value="5000">5,000</option>
+          </select>
+        </label>
+        <label>Photons per trial
+          <select id="mc-photons">
+            <option value="64">64</option><option value="128" selected>128</option><option value="256">256</option>
+          </select>
+        </label>
+        <label class="inline-check"><input id="mc-eve" type="checkbox"> Include Eve</label>
+        <button id="run-monte-carlo" class="primary-btn">Run experiment</button>
+      </div>
+
+      <div class="analytics-grid">
+        <article class="metric-card"><span>Empirical P(match)</span><strong id="metric-match">—</strong><small>Theory: 0.5</small></article>
+        <article class="metric-card"><span>Mean sifted length</span><strong id="metric-mean">—</strong><small>For N=128, theory: 64</small></article>
+        <article class="metric-card"><span>Variance</span><strong id="metric-variance">—</strong><small>For N=128, theory: 32</small></article>
+        <article class="metric-card"><span>Empirical QBER</span><strong id="metric-qber">—</strong><small id="metric-qber-note">Awaiting experiment</small></article>
+      </div>
+
+      <div class="chart-grid">
+        <article class="chart-card"><h3>Basis-match probability</h3><p>Empirical vs theoretical</p><canvas id="chart-match"></canvas></article>
+        <article class="chart-card"><h3>Sifted-key distribution</h3><p>Histogram of retained bits</p><canvas id="chart-histogram"></canvas></article>
+        <article class="chart-card"><h3>QBER across trials</h3><p>Observed error rate by trial</p><canvas id="chart-qber"></canvas></article>
+        <article class="chart-card"><h3>Interception probability</h3><p>Expected QBER is approximately p(Eve)/4 under the ideal intercept-resend model.</p><canvas id="chart-eve"></canvas></article>
+      </div>
+
+      <div class="formula-grid">
+        <div><strong>Basis match</strong><code>P(M) = 1/2</code></div>
+        <div><strong>Sifted length</strong><code>K ~ Binomial(N, 1/2)</code></div>
+        <div><strong>Expected length</strong><code>E[K] = N/2</code></div>
+        <div><strong>Variance</strong><code>Var(K) = N/4</code></div>
+        <div><strong>Ideal QBER</strong><code>Q ≈ p(Eve)/4</code></div>
+      </div>
+      <div id="experiment-summary" class="result-banner">Run an experiment to populate the graphs.</div>
+      <div class="modal-footer">
+        <button id="download-report" class="secondary-btn">Download experiment report</button>
+        <p class="fine-print">The 11% example threshold is illustrative; it is not a complete security proof.</p>
+      </div>
+    </div>
+  </section>
 
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
