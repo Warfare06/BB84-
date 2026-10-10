@@ -1,14 +1,13 @@
 
-/* =========================================================
-   BB84 QUANTUM CHAT — PTRP EDITION
-   Educational simulation; not production cryptography.
-   ========================================================= */
+/* ============================================================
+   BB84 QUANTUM CHAT + PTRP ANALYTICS
+   Firebase v8 | Educational simulation
+   ============================================================ */
 
 const firebaseConfig = {
   apiKey: "AIzaSyC3qv5heO6FpSjFHv7bXQaoIDzqlX1GX9Y",
   authDomain: "bb84-5aaed.firebaseapp.com",
-  databaseURL:
-    "https://bb84-5aaed-default-rtdb.asia-southeast1.firebasedatabase.app",
+  databaseURL: "https://bb84-5aaed-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "bb84-5aaed",
   storageBucket: "bb84-5aaed.firebasestorage.app",
   messagingSenderId: "296035061055",
@@ -16,72 +15,103 @@ const firebaseConfig = {
   measurementId: "G-Q5Q9HDFV7K"
 };
 
-const $ = id => document.getElementById(id);
-
 let database = null;
 let currentRole = "Alice";
 let currentServer = "server_1";
+
 let bb84Key = null;
 let bb84KeyBits = "";
 let eveEnabled = false;
-let generatingKey = false;
+let isGeneratingKey = false;
 let typingTimer = null;
 let listeners = [];
-let sessionStartTime = Date.now();
 
-/* ---------------- INITIALIZATION ---------------- */
+let latestBB84Result = null;
+let latestStats = null;
+let experimentHistory = [];
+
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+/* ================= INITIALIZATION ================= */
 
 window.addEventListener("load", () => {
   currentRole = localStorage.getItem("quantum_role") || "Alice";
-  $("user-role").value = currentRole;
+
+  if ($("user-role")) $("user-role").value = currentRole;
+
+  currentServer = $("server-select")?.value || "server_1";
 
   const displayName =
     localStorage.getItem("quantum_display_name") || currentRole;
 
-  $("chat-with").textContent =
-    `Chatting as: ${displayName} (${currentRole})`;
-
-  const peer = currentRole === "Alice" ? "Bob" : "Alice";
-  $("contact-name").textContent = peer;
-  $("contact-avatar").textContent = peer[0];
-  $("room-label").textContent =
-    $("server-select").selectedOptions[0].textContent;
-
-  try {
-    if (!window.firebase) {
-      throw new Error("Firebase SDK did not load.");
-    }
-
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
-
-    database = firebase.database();
-    attachFirebaseListeners();
-
-    $("connection-state").textContent = "Firebase initialized";
-  } catch (error) {
-    $("connection-state").textContent = "Firebase unavailable";
-    showToast("Check your Firebase configuration and connection.");
-    console.error(error);
+  if ($("chat-with")) {
+    $("chat-with").textContent =
+      `Chatting as: ${displayName} (${currentRole})`;
   }
 
-  $("msg-input").addEventListener("input", updateTyping);
+  updatePeerUI();
 
-  $("msg-input").addEventListener("keydown", event => {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      sendMessage();
+  if (window.firebase) {
+    try {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+
+      database = firebase.database();
+
+      database.ref(".info/connected").on("value", snapshot => {
+        const connected = snapshot.val() === true;
+        const element = $("connection-state");
+
+        if (element) {
+          element.textContent = connected
+            ? "Firebase connected"
+            : "Connecting to Firebase…";
+
+          element.classList.toggle("connected", connected);
+        }
+      });
+
+      attachFirebaseListeners();
+    } catch (error) {
+      console.error("Firebase initialization failed:", error);
+      showToast("Firebase initialization failed. Check your configuration.");
     }
-  });
+  } else {
+    showToast("Firebase SDK did not load. Check your internet connection.");
+  }
+
+  if ($("msg-input")) {
+    $("msg-input").addEventListener("input", updateTypingStatus);
+
+    $("msg-input").addEventListener("keydown", event => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+  }
+
+  if ($("analytics-eve")) $("analytics-eve").checked = false;
 
   drawEmptyCharts();
 });
 
-function detachListeners() {
-  if (database) {
-    listeners.forEach(ref => ref.off());
+function updatePeerUI() {
+  const peer = currentRole === "Alice" ? "Bob" : "Alice";
+
+  if ($("contact-name")) $("contact-name").textContent = peer;
+  if ($("contact-avatar")) $("contact-avatar").textContent = peer[0];
+
+  if ($("room-label") && $("server-select")) {
+    $("room-label").textContent =
+      $("server-select").selectedOptions[0].textContent;
   }
+}
+
+function detachListeners() {
+  if (database) listeners.forEach(ref => ref.off());
   listeners = [];
 }
 
@@ -94,176 +124,178 @@ function switchServer() {
   detachListeners();
 
   currentServer = $("server-select").value;
-  sessionStartTime = Date.now();
-
   bb84Key = null;
   bb84KeyBits = "";
+  latestBB84Result = null;
+  latestStats = null;
   eveEnabled = false;
 
-  $("chat-box").innerHTML = "";
-  $("crypto-log-content").innerHTML =
-    '<p class="muted empty-state">Encryption logs appear here.</p>';
+  if ($("chat-box")) $("chat-box").innerHTML = "";
 
-  $("key-status").textContent = "No shared key";
-  $("key-status").classList.remove("key-ready");
+  if ($("key-status")) {
+    $("key-status").textContent = "No shared key";
+    $("key-status").classList.remove("key-ready", "key-warning");
+  }
 
-  $("eve-state").textContent = "Interception disabled";
-  $("eve-btn").textContent = "Simulate Eve attack";
-  $("eve-btn").classList.remove("armed");
+  if ($("eve-state")) {
+    $("eve-state").textContent = "● Interception disabled";
+  }
 
-  $("room-label").textContent =
-    $("server-select").selectedOptions[0].textContent;
+  if ($("eve-btn")) {
+    $("eve-btn").textContent = "Simulate Eve attack";
+    $("eve-btn").classList.remove("armed");
+  }
 
-  addSystemMessage(
-    `Switched to ${$("room-label").textContent}. Generate a new key.`
-  );
+  updatePeerUI();
+  addSystemMessage("Room changed. Generate a new BB84 key to begin.");
 
   if (database) attachFirebaseListeners();
 }
 
-/* ---------------- FIREBASE LISTENERS ---------------- */
+/* ================= FIREBASE ================= */
 
 function attachFirebaseListeners() {
   if (!database) return;
 
+  const room = `servers/${currentServer}`;
   const peer = currentRole === "Alice" ? "Bob" : "Alice";
 
-  const keysRef = database
-    .ref(`servers/${currentServer}/keys`)
-    .orderByChild("time")
-    .startAt(sessionStartTime);
+  const keysRef = database.ref(`${room}/keys`).orderByChild("time");
 
   keysRef.on("child_added", snapshot => {
-    const data = snapshot.val();
+    const data = snapshot.val() || {};
 
-    if (!data || data.sender === currentRole || !data.keyBits) {
-      return;
+    if (data.sender !== currentRole && data.keyBits) {
+      bb84KeyBits = String(data.keyBits);
+      bb84Key = parseInt(bb84KeyBits.slice(0, 8).padEnd(8, "0"), 2);
+
+      updateKeyUI(bb84Key, bb84KeyBits);
+      updateCurrentStats(data.stats || {});
+
+      addSystemMessage(
+        `Simulated key received from ${data.sender}. ` +
+        `${bb84KeyBits.length} bits available.`
+      );
     }
-
-    bb84KeyBits = String(data.keyBits);
-    bb84Key = parseInt(bb84KeyBits.slice(0, 8).padEnd(8, "0"), 2);
-
-    updateKeyUI(bb84Key, bb84KeyBits);
-
-    addSystemMessage(
-      `Simulated key received from ${data.sender}.`
-    );
+  }, error => {
+    console.error("Firebase key listener error:", error);
+    showToast("Cannot read keys. Check Firebase Database Rules.");
   });
 
   listeners.push(keysRef);
 
-  const messagesRef = database
-    .ref(`servers/${currentServer}/messages`)
-    .orderByChild("time")
-    .startAt(sessionStartTime);
+  const messagesRef = database.ref(`${room}/messages`).orderByChild("time");
 
   messagesRef.on("child_added", snapshot => {
-    const data = snapshot.val();
+    const data = snapshot.val() || {};
 
-    if (
-      data &&
-      data.sender !== currentRole &&
-      Array.isArray(data.payload)
-    ) {
+    if (data.sender !== currentRole && Array.isArray(data.payload)) {
       receiveFromNetwork(data.payload, data.sender);
     }
+  }, error => {
+    console.error("Firebase message listener error:", error);
+    showToast("Cannot read messages. Check Firebase Database Rules.");
   });
 
   listeners.push(messagesRef);
 
-  const typingRef = database.ref(
-    `servers/${currentServer}/typing_status/${peer}`
-  );
+  const typingRef = database.ref(`${room}/typing_status/${peer}`);
 
   typingRef.on("value", snapshot => {
-    $("typing-indicator").textContent = `${peer} is typing...`;
-    $("typing-indicator").style.display =
-      snapshot.val() ? "block" : "none";
+    if ($("typing-indicator")) {
+      $("typing-indicator").textContent = `${peer} is typing…`;
+      $("typing-indicator").style.display =
+        snapshot.val() ? "block" : "none";
+    }
   });
 
   listeners.push(typingRef);
 
-  const alertsRef = database
-    .ref(`servers/${currentServer}/alerts`)
-    .orderByChild("time")
-    .startAt(sessionStartTime);
+  const alertsRef = database.ref(`${room}/alerts`).orderByChild("time");
 
   alertsRef.on("child_added", snapshot => {
-    const alert = snapshot.val();
+    const alert = snapshot.val() || {};
 
-    if (
-      alert &&
-      alert.type === "EVE_INTERCEPT" &&
-      alert.sender !== currentRole
-    ) {
+    if (alert.type === "EVE_INTERCEPT") {
       eveEnabled = true;
-      $("eve-state").textContent = "Attack armed for next key";
-      $("eve-btn").classList.add("armed");
 
-      addSystemMessage(
-        "Eve intercept-resend attack armed for the next key exchange."
-      );
+      if ($("analytics-eve")) $("analytics-eve").checked = true;
+
+      if ($("eve-state")) {
+        $("eve-state").textContent = "● Attack armed for next key";
+      }
+
+      if ($("eve-btn")) {
+        $("eve-btn").textContent = "Eve attack enabled";
+        $("eve-btn").classList.add("armed");
+      }
+
+      addSystemMessage("Eve intercept-resend attack has been armed.");
     }
   });
 
   listeners.push(alertsRef);
 }
 
-function updateTyping() {
-  if (!database) return;
-
-  database
-    .ref(`servers/${currentServer}/typing_status/${currentRole}`)
-    .set(true)
-    .catch(console.error);
-
-  clearTimeout(typingTimer);
-
-  typingTimer = setTimeout(() => {
-    database
-      .ref(`servers/${currentServer}/typing_status/${currentRole}`)
-      .set(false)
-      .catch(console.error);
-  }, 1200);
-}
-
-/* ---------------- SMALL UTILITIES ---------------- */
+/* ================= UI HELPERS ================= */
 
 function showToast(message) {
   const toast = $("toast");
-  toast.textContent = message;
+
+  if (!toast) {
+    console.warn(message);
+    return;
+  }
+
+  toast.textContent = `ⓘ ${message}`;
   toast.classList.add("show");
 
   clearTimeout(showToast.timer);
-
   showToast.timer = setTimeout(() => {
     toast.classList.remove("show");
-  }, 3500);
+  }, 4000);
 }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+function addSystemMessage(message) {
+  const box = $("chat-box");
+  if (!box) return;
+
+  const div = document.createElement("div");
+  div.className = "system-msg";
+  div.textContent = message;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
 }
 
-function playSound(id) {
-  const audio = $(id);
+function closeModal() {
+  if ($("keyGenModal")) $("keyGenModal").style.display = "none";
+}
 
-  if (audio) {
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
+function toggleCryptoLogs() {
+  $("crypto-sidebar")?.classList.toggle("open");
+}
+
+function resetBB84Table() {
+  [
+    "row-bits", "row-s-bases", "row-e-bases",
+    "row-r-bases", "row-match", "row-key"
+  ].forEach(id => {
+    const row = $(id);
+
+    if (row) {
+      while (row.children.length > 1) {
+        row.removeChild(row.lastChild);
+      }
+    }
+  });
+
+  if ($("key-result")) {
+    $("key-result").textContent = "";
+    $("key-result").classList.remove("security-fail");
   }
 }
 
-function addSystemMessage(text) {
-  const div = document.createElement("div");
-  div.className = "system-msg";
-  div.textContent = text;
-
-  $("chat-box").appendChild(div);
-  $("chat-box").scrollTop = $("chat-box").scrollHeight;
-}
-
-/* ---------------- BB84 RANDOM PROCESS ---------------- */
+/* ================= BB84 RANDOM MODEL ================= */
 
 function randomBit() {
   return Math.random() < 0.5 ? 0 : 1;
@@ -273,15 +305,6 @@ function randomBasis() {
   return Math.random() < 0.5 ? "+" : "×";
 }
 
-/*
-  BB84 intercept-resend model.
-
-  Alice selects a random bit and basis.
-  Eve, when enabled, measures using a random basis and resends.
-  Bob measures using his random basis.
-
-  Only positions where Alice and Bob bases match are sifted.
-*/
 function simulateBB84(photonCount = 128, withEve = false) {
   const aliceBits = [];
   const aliceBases = [];
@@ -289,6 +312,8 @@ function simulateBB84(photonCount = 128, withEve = false) {
   const bobBases = [];
   const bobBits = [];
   const matches = [];
+  const siftedAlice = [];
+  const siftedBob = [];
 
   for (let i = 0; i < photonCount; i++) {
     const bit = randomBit();
@@ -301,41 +326,35 @@ function simulateBB84(photonCount = 128, withEve = false) {
     if (withEve) {
       eveBase = randomBasis();
 
-      // Eve's measurement in the wrong basis gives a random result.
-      if (eveBase !== aliceBase) {
-        sentBit = randomBit();
-      }
+      // Measuring in the wrong basis gives Eve a random result.
+      if (eveBase !== aliceBase) sentBit = randomBit();
     }
 
     let receivedBit = sentBit;
+    const sentBasis = withEve ? eveBase : aliceBase;
 
-    // Bob gets a random outcome if his basis differs from the
-    // basis of the state Eve sent (or Alice sent if no Eve).
-    const transmittedBasis = withEve ? eveBase : aliceBase;
+    // Bob measuring in a different basis gets a random bit.
+    if (bobBase !== sentBasis) receivedBit = randomBit();
 
-    if (bobBase !== transmittedBasis) {
-      receivedBit = randomBit();
-    }
+    const matched = aliceBase === bobBase;
 
     aliceBits.push(bit);
     aliceBases.push(aliceBase);
     eveBases.push(eveBase);
     bobBases.push(bobBase);
     bobBits.push(receivedBit);
-    matches.push(aliceBase === bobBase);
+    matches.push(matched);
+
+    if (matched) {
+      siftedAlice.push(bit);
+      siftedBob.push(receivedBit);
+    }
   }
-
-  const siftedIndexes = matches
-    .map((match, index) => match ? index : -1)
-    .filter(index => index >= 0);
-
-  const aliceSifted = siftedIndexes.map(i => aliceBits[i]);
-  const bobSifted = siftedIndexes.map(i => bobBits[i]);
 
   let errors = 0;
 
-  for (let i = 0; i < aliceSifted.length; i++) {
-    if (aliceSifted[i] !== bobSifted[i]) errors++;
+  for (let i = 0; i < siftedAlice.length; i++) {
+    if (siftedAlice[i] !== siftedBob[i]) errors++;
   }
 
   return {
@@ -347,111 +366,58 @@ function simulateBB84(photonCount = 128, withEve = false) {
     bobBases,
     bobBits,
     matches,
-    siftedIndexes,
-    aliceSifted,
-    bobSifted,
-    matchCount: siftedIndexes.length,
-    matchProbability: siftedIndexes.length / photonCount,
+    siftedAlice,
+    siftedBob,
     errors,
-    qber: aliceSifted.length ? errors / aliceSifted.length : 0
+    qber: siftedAlice.length ? errors / siftedAlice.length : 0,
+    matchCount: matches.filter(Boolean).length,
+    matchProbability: matches.filter(Boolean).length / photonCount
   };
 }
 
-/* ---------------- BB84 TABLE ---------------- */
-
-function resetBB84Table() {
-  [
-    "row-bits",
-    "row-s-bases",
-    "row-e-bases",
-    "row-r-bases",
-    "row-match",
-    "row-key"
-  ].forEach(id => {
-    const row = $(id);
-    while (row.children.length > 1) {
-      row.removeChild(row.lastChild);
-    }
-  });
-
-  $("key-result").textContent = "";
-  $("key-result").classList.remove("security-fail");
-}
-
-function appendTableCell(rowId, value, className = "") {
-  const cell = document.createElement("td");
-  cell.textContent = value;
-  if (className) cell.className = className;
-  $(rowId).appendChild(cell);
-}
-
-/* ---------------- KEY GENERATION ---------------- */
+/* ================= BB84 KEY GENERATION ================= */
 
 async function generateBB84Key() {
-  if (generatingKey) return;
+  if (isGeneratingKey) return;
 
   if (!database) {
-    showToast("Firebase is not connected.");
+    showToast("Firebase is not connected. Check the Console.");
     return;
   }
 
   if (currentRole !== "Alice") {
-    showToast("Select Alice to initiate the key exchange.");
+    showToast("Select Alice to generate a key. Bob receives the simulated key.");
     return;
   }
 
-  generatingKey = true;
-  $("keygen-btn").disabled = true;
-  $("keyGenModal").style.display = "block";
+  isGeneratingKey = true;
+
+  if ($("keygen-btn")) $("keygen-btn").disabled = true;
+  if ($("keyGenModal")) $("keyGenModal").style.display = "block";
 
   resetBB84Table();
 
   const status = $("key-gen-status");
   const photonCount = 128;
-  const result = simulateBB84(photonCount, eveEnabled);
+  const withEve = eveEnabled || Boolean($("analytics-eve")?.checked);
+  const result = simulateBB84(photonCount, withEve);
+
+  latestBB84Result = result;
 
   try {
-    for (let i = 0; i < photonCount; i++) {
-      status.textContent =
-        `Simulating photon ${i + 1} of ${photonCount}...`;
+    const siftedIndexes = result.matches
+      .map((match, index) => match ? index : -1)
+      .filter(index => index >= 0);
 
-      appendTableCell("row-bits", result.aliceBits[i]);
-      appendTableCell("row-s-bases", result.aliceBases[i], "cyan");
-      appendTableCell("row-e-bases", result.eveBases[i], "purple");
-      appendTableCell("row-r-bases", result.bobBases[i]);
-
-      appendTableCell(
-        "row-match",
-        result.matches[i] ? "YES" : "NO",
-        result.matches[i] ? "good" : "bad"
-      );
-
-      const siftedPosition = result.siftedIndexes.indexOf(i);
-      const keyBit = siftedPosition >= 0
-        ? result.aliceSifted[siftedPosition]
-        : "—";
-
-      appendTableCell(
-        "row-key",
-        keyBit,
-        result.matches[i] ? "good" : "dim"
-      );
-
-      if (i % 8 === 7) await sleep(12);
-    }
-
-    /*
-      Randomly choose 20% of sifted positions for public testing.
-      Tested bits are removed from the final key.
-    */
-    const shuffled = [...result.siftedIndexes];
+    // Randomly select 20% of the sifted positions for sample checking.
+    const shuffled = [...siftedIndexes];
 
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
 
-    const sampleCount = Math.floor(shuffled.length * 0.2);
+    const sampleCount = Math.floor(siftedIndexes.length * 0.2);
     const sampleIndexes = new Set(shuffled.slice(0, sampleCount));
 
     let sampleErrors = 0;
@@ -462,158 +428,264 @@ async function generateBB84Key() {
       }
     });
 
-    const sampleQBER = sampleCount ? sampleErrors / sampleCount : 0;
+    const sampleQber = sampleCount ? sampleErrors / sampleCount : 0;
+    const accepted = sampleQber <= 0.11;
 
-    const finalIndexes = result.siftedIndexes.filter(
+    // Remove sample bits before creating the remaining demo key.
+    const remainingIndexes = siftedIndexes.filter(
       index => !sampleIndexes.has(index)
     );
 
-    const aliceFinal = finalIndexes
-      .map(index => result.aliceBits[index])
-      .join("");
+    const aliceRemaining = remainingIndexes
+      .map(index => result.aliceBits[index]).join("");
 
-    const bobFinal = finalIndexes
-      .map(index => result.bobBits[index])
-      .join("");
+    const bobRemaining = remainingIndexes
+      .map(index => result.bobBits[index]).join("");
+
+    if (aliceRemaining.length < 8) {
+      throw new Error("Too few sifted bits. Generate another key.");
+    }
+
+    // Verify that Alice and Bob's retained strings agree.
+    const keyBits = aliceRemaining.slice(0, 128);
+    const bobBits = bobRemaining.slice(0, 128);
 
     const stats = {
       photons: photonCount,
       matched: result.matchCount,
+      siftedBits: result.matchCount,
       matchProbability: result.matchProbability,
       sampleBits: sampleCount,
       sampleErrors,
-      qber: sampleQBER,
-      eve: result.withEve
+      qber: sampleQber,
+      eve: withEve,
+      timestamp: Date.now(),
+      keyAccepted: accepted
     };
 
-    $("key-result").innerHTML = `
-      <strong>${aliceFinal.length} candidate key bits</strong>
-      <span>Basis match: ${(result.matchProbability * 100).toFixed(1)}%</span>
-      <span>Sample QBER: ${(sampleQBER * 100).toFixed(1)}%</span>
-    `;
-
+    latestStats = stats;
     updateCurrentStats(stats);
 
-    /*
-      Illustrative security threshold. A real QKD implementation needs
-      a statistically justified finite-key analysis.
-    */
-    if (sampleQBER > 0.11) {
-      $("key-result").classList.add("security-fail");
-      status.textContent =
-        "WARNING: High sample QBER. Candidate key rejected.";
+    // Render the bit and basis table.
+    for (let i = 0; i < photonCount; i++) {
+      if (status) {
+        status.textContent = `Processing photon ${i + 1} of ${photonCount}…`;
+      }
 
+      const matchedBefore = result.matches
+        .slice(0, i + 1).filter(Boolean).length;
+
+      const siftedBit = result.matches[i]
+        ? result.siftedAlice[matchedBefore - 1]
+        : "—";
+
+      const cells = [
+        ["row-bits", result.aliceBits[i], ""],
+        ["row-s-bases", result.aliceBases[i], "cyan"],
+        ["row-e-bases", result.eveBases[i], "purple"],
+        ["row-r-bases", result.bobBases[i], "teal"],
+        ["row-match", result.matches[i] ? "YES" : "NO",
+          result.matches[i] ? "good" : "bad"],
+        ["row-key", siftedBit, result.matches[i] ? "good" : "dim"]
+      ];
+
+      cells.forEach(([rowId, value, className]) => {
+        const row = $(rowId);
+        if (!row) return;
+
+        const cell = document.createElement("td");
+        cell.textContent = String(value);
+        if (className) cell.className = className;
+        row.appendChild(cell);
+      });
+
+      await sleep(5);
+    }
+
+    if (!accepted) {
       bb84Key = null;
       bb84KeyBits = "";
-      $("key-status").textContent = "Key rejected — high QBER";
-      $("key-status").classList.remove("key-ready");
+
+      if ($("key-status")) {
+        $("key-status").textContent = "Key rejected — high QBER";
+        $("key-status").classList.add("key-warning");
+        $("key-status").classList.remove("key-ready");
+      }
+
+      if ($("key-result")) {
+        $("key-result").textContent =
+          `Sample QBER ${(sampleQber * 100).toFixed(1)}% exceeds the ` +
+          "illustrative 11% threshold. The demo key is rejected.";
+        $("key-result").classList.add("security-fail");
+      }
 
       addSystemMessage(
-        `Security warning: sample QBER ${(sampleQBER * 100).toFixed(1)}%. ` +
-        "Candidate key rejected in this demonstration."
+        "Key rejected because the sample QBER exceeded the demo threshold."
       );
 
-      addCryptoLog("Security check — key rejected", [
-        ["Sample bits", sampleCount],
-        ["Sample errors", sampleErrors],
-        ["Sample QBER", `${(sampleQBER * 100).toFixed(1)}%`],
-        ["Illustrative threshold", "11%"]
-      ], "var(--red)");
-
+      showToast("Key rejected. Generate a fresh BB84 key.");
       return;
     }
 
-    if (aliceFinal.length < 8 || aliceFinal !== bobFinal) {
-      status.textContent = "Not enough reliable key bits. Try again.";
-      showToast("No usable key produced. Run BB84 again.");
-      return;
+    // This remains a classical teaching demo, not real QKD.
+    // Firebase synchronization exposes this simulated key to database readers.
+    bb84KeyBits = keyBits;
+    bb84Key = parseInt(keyBits.slice(0, 8), 2);
+
+    updateKeyUI(bb84Key, keyBits);
+
+    if ($("key-result")) {
+      $("key-result").textContent =
+        `${keyBits.length} simulated key bits | ` +
+        `Basis match ${(result.matchProbability * 100).toFixed(1)}% | ` +
+        `Sample QBER ${(sampleQber * 100).toFixed(1)}%`;
     }
 
-    // Demo uses the first eight final bits as a one-byte XOR key.
-    bb84KeyBits = aliceFinal;
-    bb84Key = parseInt(aliceFinal.slice(0, 8), 2);
+    if (status) {
+      status.textContent = "Simulation complete. Synchronizing demo key…";
+    }
 
-    updateKeyUI(bb84Key, bb84KeyBits);
-
-    const record = {
+    // For demo synchronization only. Do not use this for real secrets.
+    await database.ref(`servers/${currentServer}/keys`).push({
       sender: currentRole,
-      keyBits: bb84KeyBits,
+      keyBits,
       time: Date.now(),
       stats,
       simulationOnly: true
-    };
-
-    await database
-      .ref(`servers/${currentServer}/keys`)
-      .push(record);
-
-    status.textContent =
-      "Basis reconciliation complete. Candidate key synchronized.";
+    });
 
     addSystemMessage(
-      `BB84 complete: ${result.matchCount}/${photonCount} bases matched; ` +
-      `sample QBER ${(sampleQBER * 100).toFixed(1)}%.`
+      `BB84 run complete: ${result.matchCount}/${photonCount} bases matched; ` +
+      `sample QBER ${(sampleQber * 100).toFixed(1)}%.`
     );
 
     addCryptoLog("BB84 key generation", [
       ["Photons sent", photonCount],
       ["Matching bases", result.matchCount],
-      ["Empirical P(match)", result.matchProbability.toFixed(3)],
-      ["Sample bits", sampleCount],
+      ["Empirical match probability", result.matchProbability.toFixed(3)],
+      ["Sample bits tested", sampleCount],
       ["Sample errors", sampleErrors],
-      ["Sample QBER", `${(sampleQBER * 100).toFixed(1)}%`],
-      ["Eve enabled", result.withEve ? "Yes" : "No"],
-      ["Demo XOR key byte", bb84Key]
+      ["Sample QBER", `${(sampleQber * 100).toFixed(2)}%`],
+      ["Eve enabled", withEve ? "Yes" : "No"],
+      ["Key accepted", "Yes — demo threshold"]
     ], "var(--cyan)");
 
-    playSound("snd-key");
+    experimentHistory.push({
+      time: new Date().toISOString(),
+      type: "BB84",
+      photons: photonCount,
+      matchingBases: result.matchCount,
+      matchProbability: result.matchProbability,
+      qber: sampleQber,
+      eve: withEve,
+      sampleBits: sampleCount,
+      sampleErrors,
+      accepted
+    });
+
+    if (withEve) {
+      eveEnabled = false;
+
+      if ($("eve-state")) {
+        $("eve-state").textContent = "● Attack applied to last run";
+      }
+
+      if ($("eve-btn")) {
+        $("eve-btn").textContent = "Simulate Eve attack";
+        $("eve-btn").classList.remove("armed");
+      }
+    }
   } catch (error) {
-    console.error(error);
-    status.textContent = "Key generation failed.";
-    showToast("Key generation failed. Check Firebase and try again.");
+    console.error("BB84 key generation failed:", error);
+
+    if (status) status.textContent = error.message || "Key generation failed.";
+    showToast(`Key generation failed: ${error.message || "Unknown error"}`);
   } finally {
-    generatingKey = false;
-    $("keygen-btn").disabled = false;
-    await sleep(1200);
-    $("keyGenModal").style.display = "none";
+    isGeneratingKey = false;
+    if ($("keygen-btn")) $("keygen-btn").disabled = false;
+
+    await sleep(500);
+    closeModal();
   }
 }
 
 function updateKeyUI(key, bits) {
-  $("key-status").textContent =
-    `KEY READY · ${key.toString(2).padStart(8, "0")}`;
-  $("key-status").classList.add("key-ready");
-  $("key-status").title = `${bits.length} simulated key bits`;
-}
+  const element = $("key-status");
+  if (!element) return;
 
-function closeModal() {
-  $("keyGenModal").style.display = "none";
-}
+  element.textContent =
+    `KEY READY · ${Number(key).toString(2).padStart(8, "0")}`;
 
-/* ---------------- XOR MESSAGE DEMO ---------------- */
+  element.classList.add("key-ready");
+  element.classList.remove("key-warning");
+  element.title = `${bits.length} simulated key bits`;
+}
 
 /*
-  This deliberately remains a simple classroom demonstration.
-  A single XOR byte is NOT secure encryption.
+  FIX FOR THE REPORTED ERROR:
+  This function is defined globally and accepts an optional stats object.
 */
-function xorEncrypt(text, keyByte) {
-  const bytes = new TextEncoder().encode(text);
+function updateCurrentStats(stats = {}) {
+  const match = Number(stats.matchProbability ?? 0);
+  const sifted = Number(stats.siftedBits ?? stats.matched ?? 0);
+  const qber = Number(stats.qber ?? 0);
+  const eve = Boolean(stats.eve);
 
-  return Array.from(bytes, byte =>
-    (byte ^ keyByte).toString(2).padStart(8, "0")
+  if ($("metric-match")) {
+    $("metric-match").textContent = `${(match * 100).toFixed(1)}%`;
+  }
+
+  if ($("metric-sifted")) {
+    $("metric-sifted").textContent = sifted.toFixed(1);
+  }
+
+  if ($("metric-qber")) {
+    $("metric-qber").textContent = `${(qber * 100).toFixed(1)}%`;
+  }
+
+  if ($("metric-qber-note")) {
+    $("metric-qber-note").textContent =
+      eve ? "Eve enabled in this simulation" : "No Eve: ideally 0%";
+  }
+
+  if ($("metric-eve")) {
+    $("metric-eve").textContent =
+      eve ? `${(qber * 100).toFixed(1)}% observed` : "Not active";
+  }
+}
+
+/* ================= EDUCATIONAL CHAT ENCODING ================= */
+
+/*
+  The XOR layer is retained for demonstration compatibility.
+  It is NOT secure encryption.
+*/
+
+function toUtf8Bytes(value) {
+  return Array.from(new TextEncoder().encode(value));
+}
+
+function fromUtf8Bytes(bytes) {
+  return new TextDecoder().decode(new Uint8Array(bytes));
+}
+
+function xorEncrypt(text, keyByte) {
+  return toUtf8Bytes(text).map(
+    byte => (byte ^ keyByte).toString(2).padStart(8, "0")
   );
 }
 
 function xorDecrypt(payload, keyByte) {
-  const bytes = payload.map(bits => parseInt(bits, 2) ^ keyByte);
-  return new TextDecoder().decode(new Uint8Array(bytes));
+  const bytes = payload.map(binary => parseInt(binary, 2) ^ keyByte);
+  return fromUtf8Bytes(bytes);
 }
 
 function sendMessage() {
   const input = $("msg-input");
-  const text = input.value.trim();
+  if (!input) return;
 
-  if (!text) return;
+  const messageText = input.value.trim();
+  if (!messageText) return;
 
   if (!database) {
     showToast("Firebase is not connected.");
@@ -621,11 +693,11 @@ function sendMessage() {
   }
 
   if (bb84Key === null) {
-    showToast("Generate or receive a BB84 key first.");
+    showToast("Generate or receive a simulated BB84 key first.");
     return;
   }
 
-  const payload = xorEncrypt(text, bb84Key);
+  const payload = xorEncrypt(messageText, bb84Key);
 
   database.ref(`servers/${currentServer}/messages`).push({
     sender: currentRole,
@@ -633,55 +705,53 @@ function sendMessage() {
     time: Date.now(),
     simulationOnly: true
   }).then(() => {
-    displayMessage(currentRole, text, payload.join(" "), "sent");
-    playSound("snd-send");
+    displayMessage(currentRole, messageText, payload.join(" "), "sent");
     input.value = "";
 
-    database
-      .ref(`servers/${currentServer}/typing_status/${currentRole}`)
-      .set(false)
-      .catch(console.error);
+    database.ref(
+      `servers/${currentServer}/typing_status/${currentRole}`
+    ).set(false).catch(console.error);
 
-    addCryptoLog("Encrypted & sent", [
+    addCryptoLog("Message encoded", [
       ["UTF-8 bytes", payload.length],
-      ["XOR key byte", bb84Key],
-      ["Ciphertext", payload.join(" ")]
+      ["Demo XOR byte", bb84Key],
+      ["Encoded payload", payload.join(" ")]
     ], "var(--cyan)");
   }).catch(error => {
-    console.error(error);
-    showToast("Message send failed. Check database rules.");
+    console.error("Message write failed:", error);
+    showToast(`Message send failed: ${error.message}`);
   });
 }
 
 function receiveFromNetwork(payload, sender) {
   if (bb84Key === null) {
-    addSystemMessage(
-      `Message from ${sender} received, but no demo key is available.`
-    );
     displayMessage(sender, "Locked content 🔐", payload.join(" "), "received");
+    addSystemMessage("Message received, but no demo key is available.");
     return;
   }
 
   try {
-    const text = xorDecrypt(payload, bb84Key);
+    const decrypted = xorDecrypt(payload, bb84Key);
 
-    displayMessage(sender, text, payload.join(" "), "received");
-    playSound("snd-recv");
+    displayMessage(sender, decrypted, payload.join(" "), "received");
 
-    addCryptoLog(`Decrypted from ${sender}`, [
-      ["Ciphertext", payload.join(" ")],
-      ["XOR key byte", bb84Key],
-      ["Recovered text", text]
+    addCryptoLog("Message decoded", [
+      ["Sender", sender],
+      ["Encoded payload", payload.join(" ")],
+      ["Recovered text", decrypted]
     ], "var(--teal)");
   } catch (error) {
     console.error(error);
-    showToast("Unable to decode this message.");
+    showToast("Could not decode message. Check whether both demo keys match.");
   }
 }
 
-function displayMessage(user, text, binary, type) {
-  const div = document.createElement("div");
-  div.className = `message ${type}`;
+function displayMessage(user, messageText, payloadText, type) {
+  const box = $("chat-box");
+  if (!box) return;
+
+  const message = document.createElement("div");
+  message.className = `message ${type}`;
 
   const meta = document.createElement("div");
   meta.className = "message-meta";
@@ -699,7 +769,7 @@ function displayMessage(user, text, binary, type) {
 
   const body = document.createElement("div");
   body.className = "message-text";
-  body.textContent = text;
+  body.textContent = messageText;
 
   const details = document.createElement("details");
   details.className = "payload-details";
@@ -708,19 +778,37 @@ function displayMessage(user, text, binary, type) {
   summary.textContent = "View network payload";
 
   const code = document.createElement("code");
-  code.textContent = binary;
+  code.textContent = payloadText;
 
   details.append(summary, code);
-  div.append(meta, body, details);
-
-  $("chat-box").appendChild(div);
-  $("chat-box").scrollTop = $("chat-box").scrollHeight;
+  message.append(meta, body, details);
+  box.appendChild(message);
+  box.scrollTop = box.scrollHeight;
 }
 
-function addCryptoLog(title, rows, color) {
-  const container = $("crypto-log-content");
-  const empty = container.querySelector(".empty-state");
+function updateTypingStatus() {
+  if (!database) return;
 
+  database.ref(
+    `servers/${currentServer}/typing_status/${currentRole}`
+  ).set(true).catch(() => {});
+
+  clearTimeout(typingTimer);
+
+  typingTimer = setTimeout(() => {
+    database.ref(
+      `servers/${currentServer}/typing_status/${currentRole}`
+    ).set(false).catch(() => {});
+  }, 1200);
+}
+
+/* ================= CRYPTO LOGS ================= */
+
+function addCryptoLog(title, rows, color) {
+  const wrap = $("crypto-log-content");
+  if (!wrap) return;
+
+  const empty = wrap.querySelector(".empty-state");
   if (empty) empty.remove();
 
   const entry = document.createElement("div");
@@ -746,14 +834,10 @@ function addCryptoLog(title, rows, color) {
   });
 
   entry.append(heading, table);
-  container.prepend(entry);
+  wrap.prepend(entry);
 }
 
-function toggleCryptoLogs() {
-  $("crypto-sidebar").classList.toggle("open");
-}
-
-/* ---------------- EVE INTERCEPT-RESEND ---------------- */
+/* ================= EVE ATTACK ================= */
 
 function triggerEveAttack() {
   if (!database) {
@@ -762,371 +846,414 @@ function triggerEveAttack() {
   }
 
   eveEnabled = true;
-  $("eve-state").textContent = "Attack armed for next key";
-  $("eve-btn").textContent = "Eve attack enabled";
-  $("eve-btn").classList.add("armed");
+
+  if ($("analytics-eve")) $("analytics-eve").checked = true;
+
+  if ($("eve-state")) {
+    $("eve-state").textContent = "● Attack armed for next key";
+  }
+
+  if ($("eve-btn")) {
+    $("eve-btn").textContent = "Eve attack enabled";
+    $("eve-btn").classList.add("armed");
+  }
 
   database.ref(`servers/${currentServer}/alerts`).push({
     type: "EVE_INTERCEPT",
     sender: currentRole,
     time: Date.now()
-  }).catch(console.error);
+  }).catch(error => {
+    console.error(error);
+    showToast("Could not notify the room about Eve.");
+  });
 
   addSystemMessage(
-    "Eve is armed. Alice should generate a fresh BB84 key."
+    "Eve attack armed. Alice should generate a fresh key to measure QBER."
   );
 }
 
-/* =========================================================
-   PTRP MONTE CARLO EXPERIMENTS
-   ========================================================= */
+/* ================= PTRP MONTE CARLO ================= */
 
 function runMonteCarlo() {
-  const count = Number($("trial-count").value);
-  const withEve = $("analytics-eve").checked;
+  const trialSelect = $("trial-count");
+  const eveCheckbox = $("analytics-eve");
+  if (!trialSelect || !eveCheckbox) return;
+
+  const count = Math.max(
+    1,
+    Math.min(10000, Number(trialSelect.value) || 500)
+  );
+
+  const withEve = eveCheckbox.checked;
   const button = $("run-experiment-btn");
 
-  button.disabled = true;
-  button.textContent = "Running experiment...";
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Running experiment…";
+  }
 
-  // Defer computation so the browser can update the button.
   setTimeout(() => {
-    let totalMatches = 0;
-    let totalPhotons = 0;
-    let totalErrors = 0;
-    let totalSifted = 0;
+    try {
+      let totalMatches = 0;
+      let totalSifted = 0;
+      let totalSiftedSquared = 0;
+      let totalErrors = 0;
 
-    const matchProbabilities = [];
-    const siftedLengths = [];
-    const qbers = [];
+      const siftedLengths = [];
+      const qbers = [];
 
-    for (let i = 0; i < count; i++) {
-      const result = simulateBB84(128, withEve);
+      for (let trial = 0; trial < count; trial++) {
+        const result = simulateBB84(128, withEve);
 
-      totalMatches += result.matchCount;
-      totalPhotons += result.photonCount;
-      totalErrors += result.errors;
-      totalSifted += result.matchCount;
+        totalMatches += result.matchCount;
+        totalSifted += result.siftedAlice.length;
+        totalSiftedSquared += result.siftedAlice.length ** 2;
+        totalErrors += result.errors;
 
-      matchProbabilities.push(result.matchProbability);
-      siftedLengths.push(result.matchCount);
-      qbers.push(result.qber);
+        siftedLengths.push(result.siftedAlice.length);
+        qbers.push(result.qber);
+      }
+
+      const totalPhotons = count * 128;
+      const empiricalMatch = totalMatches / totalPhotons;
+      const meanSifted = totalSifted / count;
+
+      const variance = Math.max(
+        0,
+        totalSiftedSquared / count - meanSifted ** 2
+      );
+
+      const empiricalQber = totalSifted
+        ? totalErrors / totalSifted
+        : 0;
+
+      const record = {
+        time: new Date().toISOString(),
+        type: "PTRP Monte Carlo",
+        trials: count,
+        eve: withEve,
+        empiricalMatch,
+        meanSifted,
+        variance,
+        qber: empiricalQber
+      };
+
+      experimentHistory.push(record);
+
+      updateCurrentStats({
+        matchProbability: empiricalMatch,
+        siftedBits: meanSifted,
+        qber: empiricalQber,
+        eve: withEve
+      });
+
+      drawBarChart($("matchChart"), [
+        { label: "Observed", value: empiricalMatch, color: "#00c2ff" },
+        { label: "Theory", value: 0.5, color: "#5bc0be" }
+      ], 0, 1);
+
+      drawHistogram($("siftChart"), siftedLengths, 32, 96);
+
+      drawLineChart(
+        $("qberChart"),
+        qbers.slice(0, Math.min(200, qbers.length)),
+        0.5,
+        withEve ? 0.25 : 0
+      );
+
+      if ($("experiment-summary")) {
+        $("experiment-summary").dataset.ran = "true";
+        $("experiment-summary").textContent =
+          `${count.toLocaleString()} trials × 128 photons | ` +
+          `Eve: ${withEve ? "ON" : "OFF"} | ` +
+          `P(match): ${(empiricalMatch * 100).toFixed(2)}% (theory 50%) | ` +
+          `Mean sifted bits: ${meanSifted.toFixed(2)} (theory 64) | ` +
+          `Variance: ${variance.toFixed(2)} (theory 32) | ` +
+          `QBER: ${(empiricalQber * 100).toFixed(2)}% ` +
+          `(ideal ${withEve ? "about 25%" : "0%"})`;
+      }
+
+      addCryptoLog("PTRP Monte Carlo", [
+        ["Trials", count],
+        ["Eve", withEve ? "Enabled" : "Disabled"],
+        ["Empirical P(match)", empiricalMatch.toFixed(4)],
+        ["Mean sifted length", meanSifted.toFixed(3)],
+        ["Variance", variance.toFixed(3)],
+        ["Empirical QBER", `${(empiricalQber * 100).toFixed(2)}%`]
+      ], "var(--teal)");
+
+    } catch (error) {
+      console.error("Monte Carlo experiment failed:", error);
+      showToast("PTRP experiment failed. Check the Console.");
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.textContent = "Run experiment";
+      }
     }
-
-    const empiricalMatch = totalMatches / totalPhotons;
-    const meanSifted = mean(siftedLengths);
-    const varianceSifted = variance(siftedLengths);
-    const empiricalQBER = totalSifted
-      ? totalErrors / totalSifted
-      : 0;
-
-    $("metric-match").textContent =
-      `${(empiricalMatch * 100).toFixed(2)}%`;
-
-    $("metric-sifted").textContent = meanSifted.toFixed(2);
-
-    $("metric-qber").textContent =
-      `${(empiricalQBER * 100).toFixed(2)}%`;
-
-    $("metric-qber-note").textContent = withEve
-      ? "Expected approximately 25%"
-      : "Expected approximately 0%";
-
-    $("metric-eve").textContent = withEve
-      ? `${(empiricalQBER * 100).toFixed(2)}% observed`
-      : "Not active";
-
-    drawBarChart(
-      $("matchChart"),
-      [
-        {label:"Observed", value:empiricalMatch, color:"#00c2ff"},
-        {label:"Theory", value:0.5, color:"#5bc0be"}
-      ],
-      0, 1
-    );
-
-    drawHistogram($("siftChart"), siftedLengths);
-
-    drawLineChart(
-      $("qberChart"),
-      qbers.slice(0, Math.min(qbers.length, 100)),
-      withEve ? 0.5 : 0.1,
-      withEve ? 0.25 : 0
-    );
-
-    $("experiment-summary").textContent =
-      `${count.toLocaleString()} trials × 128 photons. ` +
-      `Eve: ${withEve ? "ON" : "OFF"}. ` +
-      `P(match): ${(empiricalMatch * 100).toFixed(2)}% ` +
-      `(theory 50%). Mean sifted length: ${meanSifted.toFixed(2)} ` +
-      `(theory 64). Variance: ${varianceSifted.toFixed(2)} ` +
-      `(theory 32). QBER: ${(empiricalQBER * 100).toFixed(2)}% ` +
-      `(ideal ${withEve ? "about 25%" : "0%"}).`;
-
-    addCryptoLog("PTRP Monte Carlo experiment", [
-      ["Number of trials", count],
-      ["Eve", withEve ? "Enabled" : "Disabled"],
-      ["Empirical P(match)", empiricalMatch.toFixed(4)],
-      ["Mean sifted length", meanSifted.toFixed(3)],
-      ["Variance", varianceSifted.toFixed(3)],
-      ["Empirical QBER", `${(empiricalQBER * 100).toFixed(2)}%`]
-    ], "var(--teal)");
-
-    button.disabled = false;
-    button.textContent = "Run experiment";
   }, 20);
 }
 
-function mean(values) {
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
+function toggleAnalytics(forceOpen) {
+  const modal = $("analyticsModal");
+  if (!modal) return;
+
+  const open = typeof forceOpen === "boolean"
+    ? forceOpen
+    : modal.style.display !== "block";
+
+  modal.style.display = open ? "block" : "none";
+
+  if (open && !$("experiment-summary")?.dataset.ran) {
+    runMonteCarlo();
+  }
 }
 
-function variance(values) {
-  const average = mean(values);
-  return values.reduce(
-    (sum, value) => sum + (value - average) ** 2, 0
-  ) / values.length;
-}
-
-/* ---------------- CANVAS GRAPHS ---------------- */
+/* ================= CHART DRAWING ================= */
 
 function canvasSetup(canvas) {
-  const context = canvas.getContext("2d");
+  if (!canvas) return null;
+
+  const ctx = canvas.getContext("2d");
   const ratio = window.devicePixelRatio || 1;
-  const width = canvas.clientWidth || 600;
-  const height = canvas.clientHeight || 220;
+  const width = canvas.clientWidth || 640;
+  const height = canvas.clientHeight || 260;
 
   canvas.width = width * ratio;
   canvas.height = height * ratio;
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
-  context.scale(ratio, ratio);
-  context.fillStyle = "#0b1425";
-  context.fillRect(0, 0, width, height);
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = "#0b1425";
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.font = "11px Arial, sans-serif";
+  ctx.fillStyle = "#8ca3bd";
 
   return {
-    ctx: context,
-    width,
-    height,
-    left: 43,
-    right: 15,
-    top: 18,
-    bottom: 34
+    ctx, width, height,
+    pad: { left: 42, right: 16, top: 18, bottom: 34 }
   };
 }
 
 function drawBarChart(canvas, bars, min, max) {
-  const c = canvasSetup(canvas);
-  const {ctx, width, height, left, right, top, bottom} = c;
-  const plotHeight = height - top - bottom;
-  const plotWidth = width - left - right;
+  const chart = canvasSetup(canvas);
+  if (!chart) return;
 
-  ctx.font = "11px Segoe UI";
+  const { ctx, width, height, pad } = chart;
+  const plotH = height - pad.top - pad.bottom;
+  const plotW = width - pad.left - pad.right;
+
   ctx.strokeStyle = "#25364b";
-  ctx.fillStyle = "#91a4bd";
 
   for (let i = 0; i <= 4; i++) {
-    const y = top + plotHeight * i / 4;
-
+    const y = pad.top + plotH * i / 4;
     ctx.beginPath();
-    ctx.moveTo(left, y);
-    ctx.lineTo(width - right, y);
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(width - pad.right, y);
     ctx.stroke();
 
-    ctx.fillText((max - (max - min) * i / 4).toFixed(2), 3, y + 4);
+    ctx.fillStyle = "#8ca3bd";
+    ctx.fillText((max - (max - min) * i / 4).toFixed(2), 4, y + 4);
   }
 
-  const slot = plotWidth / bars.length;
+  const slot = plotW / Math.max(1, bars.length);
 
-  bars.forEach((bar, i) => {
-    const barHeight = Math.max(
-      1, ((bar.value - min) / (max - min)) * plotHeight
-    );
-
-    const x = left + i * slot + slot * 0.22;
-    const y = height - bottom - barHeight;
+  bars.forEach((bar, index) => {
+    const ratio = Math.max(0, (bar.value - min) / (max - min));
+    const barH = ratio * plotH;
+    const x = pad.left + index * slot + slot * 0.23;
+    const y = height - pad.bottom - barH;
 
     ctx.fillStyle = bar.color;
-    ctx.fillRect(x, y, slot * 0.56, barHeight);
+    ctx.fillRect(x, y, slot * 0.54, barH);
 
+    ctx.fillStyle = "#e6f0ff";
     ctx.textAlign = "center";
-    ctx.fillStyle = "#eaf5ff";
-    ctx.fillText(bar.value.toFixed(3), x + slot * 0.28, Math.max(12, y - 6));
-    ctx.fillText(bar.label, x + slot * 0.28, height - 11);
+    ctx.fillText(bar.label, x + slot * 0.27, height - 12);
+    ctx.fillText(bar.value.toFixed(3), x + slot * 0.27, Math.max(12, y - 6));
   });
 
   ctx.textAlign = "left";
 }
 
-function drawHistogram(canvas, values) {
-  const c = canvasSetup(canvas);
-  const {ctx, width, height, left, right, top, bottom} = c;
-  const plotHeight = height - top - bottom;
-  const plotWidth = width - left - right;
+function drawHistogram(canvas, values, min, max) {
+  const chart = canvasSetup(canvas);
+  if (!chart) return;
 
-  const labels = [];
-  for (let x = 32; x <= 96; x += 4) labels.push(x);
+  const { ctx, width, height, pad } = chart;
+  const step = 4;
+  const bins = [];
 
-  const bins = labels.map(() => 0);
+  for (let value = min; value <= max; value += step) {
+    bins.push({ label: String(value), count: 0 });
+  }
 
   values.forEach(value => {
     const index = Math.max(
-      0, Math.min(bins.length - 1, Math.floor((value - 32) / 4))
+      0,
+      Math.min(bins.length - 1, Math.floor((value - min) / step))
     );
-    bins[index]++;
+    bins[index].count++;
   });
 
-  const maxCount = Math.max(1, ...bins);
-  const slot = plotWidth / bins.length;
+  const plotH = height - pad.top - pad.bottom;
+  const plotW = width - pad.left - pad.right;
+  const maxCount = Math.max(1, ...bins.map(bin => bin.count));
 
   ctx.strokeStyle = "#25364b";
-  ctx.fillStyle = "#91a4bd";
-  ctx.font = "10px Segoe UI";
 
   for (let i = 0; i <= 4; i++) {
-    const y = top + plotHeight * i / 4;
+    const y = pad.top + plotH * i / 4;
     ctx.beginPath();
-    ctx.moveTo(left, y);
-    ctx.lineTo(width - right, y);
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(width - pad.right, y);
     ctx.stroke();
   }
 
-  bins.forEach((value, i) => {
-    const barHeight = value / maxCount * plotHeight;
+  const slot = plotW / bins.length;
+
+  bins.forEach((bin, index) => {
+    const barH = bin.count / maxCount * plotH;
 
     ctx.fillStyle = "#00c2ff";
     ctx.fillRect(
-      left + i * slot + 1,
-      height - bottom - barHeight,
+      pad.left + index * slot + 1,
+      height - pad.bottom - barH,
       Math.max(1, slot - 2),
-      barHeight
+      barH
     );
 
-    if (i % 4 === 0) {
-      ctx.fillStyle = "#91a4bd";
-      ctx.fillText(String(labels[i]), left + i * slot, height - 11);
+    if (index % 4 === 0) {
+      ctx.fillStyle = "#8ca3bd";
+      ctx.fillText(bin.label, pad.left + index * slot, height - 12);
     }
   });
 
-  ctx.fillStyle = "#91a4bd";
-  ctx.fillText(`Trials: ${values.length}`, left, top + 12);
+  ctx.fillStyle = "#8ca3bd";
+  ctx.fillText(`Trials: ${values.length}`, pad.left, pad.top + 12);
 }
 
 function drawLineChart(canvas, values, maxY, theoryY) {
-  const c = canvasSetup(canvas);
-  const {ctx, width, height, left, right, top, bottom} = c;
-  const plotHeight = height - top - bottom;
-  const plotWidth = width - left - right;
+  const chart = canvasSetup(canvas);
+  if (!chart) return;
 
-  ctx.font = "10px Segoe UI";
+  const { ctx, width, height, pad } = chart;
+  const plotH = height - pad.top - pad.bottom;
+  const plotW = width - pad.left - pad.right;
+
   ctx.strokeStyle = "#25364b";
-  ctx.fillStyle = "#91a4bd";
 
   for (let i = 0; i <= 4; i++) {
-    const y = top + plotHeight * i / 4;
+    const y = pad.top + plotH * i / 4;
 
     ctx.beginPath();
-    ctx.moveTo(left, y);
-    ctx.lineTo(width - right, y);
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(width - pad.right, y);
     ctx.stroke();
 
-    ctx.fillText(
-      `${(maxY * (1 - i / 4) * 100).toFixed(0)}%`,
-      3, y + 4
-    );
+    ctx.fillStyle = "#8ca3bd";
+    ctx.fillText(`${(maxY * (1 - i / 4) * 100).toFixed(0)}%`, 4, y + 4);
   }
 
   if (values.length) {
-    ctx.beginPath();
     ctx.strokeStyle = "#00c2ff";
     ctx.lineWidth = 2;
+    ctx.beginPath();
 
-    values.forEach((value, i) => {
-      const x = left + (
-        values.length === 1 ? 0 : i / (values.length - 1)
-      ) * plotWidth;
+    values.forEach((value, index) => {
+      const x = pad.left +
+        (values.length === 1 ? 0 : index / (values.length - 1)) * plotW;
 
-      const y = top + plotHeight -
-        Math.min(maxY, value) / maxY * plotHeight;
+      const y = pad.top + plotH -
+        Math.min(maxY, value) / maxY * plotH;
 
-      if (i === 0) ctx.moveTo(x, y);
+      if (index === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     });
 
     ctx.stroke();
   } else {
-    ctx.fillText("Run an experiment to view QBER.", left + 8, top + 35);
+    ctx.fillStyle = "#8ca3bd";
+    ctx.fillText("Run an experiment to view QBER", pad.left + 8, pad.top + plotH / 2);
   }
 
   if (theoryY > 0) {
-    const y = top + plotHeight - theoryY / maxY * plotHeight;
+    const y = pad.top + plotH - theoryY / maxY * plotH;
 
-    ctx.save();
     ctx.setLineDash([5, 4]);
     ctx.strokeStyle = "#5bc0be";
     ctx.beginPath();
-    ctx.moveTo(left, y);
-    ctx.lineTo(width - right, y);
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(width - pad.right, y);
     ctx.stroke();
-    ctx.restore();
+    ctx.setLineDash([]);
 
     ctx.fillStyle = "#5bc0be";
-    ctx.fillText("Theory: 25%", Math.max(left, width - right - 70), y - 5);
+    ctx.fillText("Theory 25%", width - pad.right - 70, y - 5);
   }
 }
 
 function drawEmptyCharts() {
   drawBarChart($("matchChart"), [
-    {label:"Observed", value:0, color:"#00c2ff"},
-    {label:"Theory", value:0.5, color:"#5bc0be"}
+    { label: "Observed", value: 0, color: "#00c2ff" },
+    { label: "Theory", value: 0.5, color: "#5bc0be" }
   ], 0, 1);
 
-  drawHistogram($("siftChart"), []);
+  drawHistogram($("siftChart"), [], 32, 96);
   drawLineChart($("qberChart"), [], 0.5, 0);
 }
 
-function updateCurrentStats() {
-    // Update the current key statistics on the dashboard.
-    const keyLengthEl = document.getElementById("keyLength");
-    const qberEl = document.getElementById("qberValue");
-    const statusEl = document.getElementById("keyStatus");
+/* ================= CSV EXPORT ================= */
 
-    if (keyLengthEl) {
-        keyLengthEl.textContent = String(
-            Array.isArray(sharedKey) ? sharedKey.length : 0
-        );
-    }
-
-    if (qberEl) {
-        qberEl.textContent = typeof currentQBER !== "undefined"
-            ? `${(currentQBER * 100).toFixed(2)}%`
-            : "—";
-    }
-
-    if (statusEl) {
-        statusEl.textContent = Array.isArray(sharedKey) && sharedKey.length
-            ? "Key Generated"
-            : "Waiting";
-    }
-}
-
-/* ---------------- ANALYTICS MODAL ---------------- */
-
-function toggleAnalytics(forceOpen) {
-  const modal = $("analyticsModal");
-
-  const shouldOpen = typeof forceOpen === "boolean"
-    ? forceOpen
-    : modal.style.display !== "block";
-
-  modal.style.display = shouldOpen ? "block" : "none";
-
-  if (shouldOpen) {
-    drawEmptyCharts();
+function exportExperimentCSV() {
+  if (!experimentHistory.length) {
+    showToast("Run a BB84 or PTRP experiment before exporting.");
+    return;
   }
+
+  const columns = [
+    "time", "type", "trials", "photons", "matchingBases",
+    "matchProbability", "meanSifted", "variance", "qber",
+    "eve", "sampleBits", "sampleErrors", "accepted"
+  ];
+
+  const escapeCSV = value => {
+    const text = value == null ? "" : String(value);
+    return `"${text.replace(/"/g, '""')}"`;
+  };
+
+  const lines = [
+    columns.join(","),
+    ...experimentHistory.map(row =>
+      columns.map(column => escapeCSV(row[column])).join(",")
+    )
+  ];
+
+  const blob = new Blob([lines.join("\r\n")], {
+    type: "text/csv;charset=utf-8;"
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = "bb84_ptrp_experiments.csv";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  URL.revokeObjectURL(url);
+  showToast("CSV experiment report downloaded.");
 }
 
+/* Redraw graphs when the window size changes. */
 window.addEventListener("resize", () => {
   if ($("analyticsModal")?.style.display === "block") {
-    drawEmptyCharts();
+    if ($("experiment-summary")?.dataset.ran) {
+      runMonteCarlo();
+    } else {
+      drawEmptyCharts();
+    }
   }
 });
