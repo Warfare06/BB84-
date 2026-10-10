@@ -1,4 +1,3 @@
-
 /* ============================================================
    BB84 QUANTUM CHAT + PTRP ANALYTICS
    Firebase v8 | Educational simulation
