@@ -1,11 +1,11 @@
 
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#07111f">
-  <title>Quantum Chat | BB84 Lab</title>
+  <title>Quantum Chat — BB84 PTRP</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="login-body">
@@ -14,50 +14,68 @@
     <p class="eyebrow">QUANTUM COMMUNICATION LAB</p>
     <h1>Quantum Chat</h1>
     <p class="muted">
-      An interactive BB84 and Probability Theory & Random Processes laboratory.
+      BB84 Quantum Key Distribution simulation and Probability Theory
+      &amp; Random Processes experiments.
     </p>
 
     <form id="login-form">
       <label for="display-name">Display name</label>
       <input id="display-name" maxlength="32" placeholder="Enter your name" required>
 
-      <label for="login-role">Your role</label>
+      <label for="login-role">Select role</label>
       <select id="login-role">
-        <option value="Alice">Alice · Sender</option>
-        <option value="Bob">Bob · Receiver</option>
+        <option value="Alice">Alice — Sender</option>
+        <option value="Bob">Bob — Receiver</option>
       </select>
 
-      <label for="login-room">Room</label>
+      <label for="login-room">Communication room</label>
       <select id="login-room">
-        <option value="server_1">Server 1 · Alpha</option>
-        <option value="server_2">Server 2 · Beta</option>
-        <option value="server_3">Server 3 · Gamma</option>
-        <option value="server_4">Server 4 · Delta</option>
-        <option value="server_5">Server 5 · Epsilon</option>
+        <option value="server_1">Server 1 — Alpha</option>
+        <option value="server_2">Server 2 — Beta</option>
+        <option value="server_3">Server 3 — Gamma</option>
+        <option value="server_4">Server 4 — Delta</option>
+        <option value="server_5">Server 5 — Epsilon</option>
       </select>
 
-      <button class="primary-btn full-width" type="submit">Enter quantum lab ↗</button>
+      <button class="primary-btn full-width" type="submit">
+        Enter Quantum Lab ↗
+      </button>
     </form>
 
     <div class="feature-chips">
-      <span>BB84</span><span>Monte Carlo</span><span>Eve attack</span><span>PTRP</span>
+      <span>BB84</span>
+      <span>Monte Carlo</span>
+      <span>Eve Attack</span>
+      <span>PTRP</span>
     </div>
-    <p class="fine-print">Academic demonstration only. Do not use for confidential communication.</p>
+
+    <p class="fine-print">
+      Educational simulation only. Not suitable for confidential communication.
+    </p>
   </main>
 
   <script>
     const $ = id => document.getElementById(id);
-    $("display-name").value = localStorage.getItem("quantum_name") || "";
-    $("login-role").value = localStorage.getItem("quantum_role") || "Alice";
-    $("login-room").value = localStorage.getItem("quantum_room") || "server_1";
+
+    $("display-name").value =
+      localStorage.getItem("quantum_name") || "";
+
+    $("login-role").value =
+      localStorage.getItem("quantum_role") || "Alice";
+
+    $("login-room").value =
+      localStorage.getItem("quantum_room") || "server_1";
 
     $("login-form").addEventListener("submit", event => {
       event.preventDefault();
+
       const name = $("display-name").value.trim();
       if (!name) return;
+
       localStorage.setItem("quantum_name", name.slice(0, 32));
       localStorage.setItem("quantum_role", $("login-role").value);
       localStorage.setItem("quantum_room", $("login-room").value);
+
       location.href = "chat.html";
     });
   </script>
