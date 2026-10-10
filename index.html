@@ -1,17 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>BB84 Secure Login</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#050b18"><title>Quantum Chat — Secure Demo</title><link rel="stylesheet" href="style.css">
 </head>
 <body class="login-body">
-    <div class="login-card">
-        <h2>Quantum Chat</h2>
-        <p>Secure BB84 Communication</p>
-        <input type="text" id="username" placeholder="Enter Username">
-        
-        <button onclick="window.location.href='chat.html'">Login</button>
-    </div>
+  <div class="login-glow glow-one"></div><div class="login-glow glow-two"></div>
+  <main class="login-card">
+    <div class="brand-mark">Q<span>+</span></div>
+    <p class="eyebrow">QUANTUM COMMUNICATION LAB</p>
+    <h1>Quantum Chat</h1>
+    <p class="login-subtitle">Explore BB84 key distribution, probability, and eavesdropping detection in an interactive chat simulation.</p>
+    <label for="username">Display name</label><input type="text" id="username" maxlength="32" placeholder="e.g. Alice or Bob" autocomplete="nickname">
+    <label for="login-role">Choose role</label><select id="login-role"><option value="Alice">Alice · Sender</option><option value="Bob">Bob · Receiver</option></select>
+    <button class="primary-btn login-button" id="login-btn">Enter quantum chat <span>↗</span></button>
+    <div class="login-features"><span>● BB84 simulation</span><span>● PTRP analytics</span><span>● Eve attack demo</span></div>
+    <p class="disclaimer">Academic prototype only. Do not use for private or sensitive messages.</p>
+  </main>
+  <script>
+    const nameInput = document.getElementById('username');
+    const roleInput = document.getElementById('login-role');
+    nameInput.value = localStorage.getItem('quantum_display_name') || '';
+    roleInput.value = localStorage.getItem('quantum_role') || 'Alice';
+    document.getElementById('login-btn').addEventListener('click', () => {
+      const name = nameInput.value.trim();
+      if (!name) { nameInput.focus(); nameInput.setCustomValidity('Enter a display name'); nameInput.reportValidity(); return; }
+      nameInput.setCustomValidity('');
+      localStorage.setItem('quantum_display_name', name.slice(0,32));
+      localStorage.setItem('quantum_role', roleInput.value);
+      window.location.href = 'chat.html';
+    });
+    nameInput.addEventListener('input', () => nameInput.setCustomValidity(''));
+    nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('login-btn').click(); });
+  </script>
 </body>
 </html>
