@@ -1,72 +1,63 @@
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#050b18">
-  <title>Quantum Chat | BB84 PTRP Lab</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07111f">
+  <title>Quantum Chat | BB84 Lab</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="login-body">
-  <div class="login-glow glow-one"></div>
-  <div class="login-glow glow-two"></div>
-
   <main class="login-card">
     <div class="brand-mark">Q<span>+</span></div>
     <p class="eyebrow">QUANTUM COMMUNICATION LAB</p>
     <h1>Quantum Chat</h1>
-    <p class="login-subtitle">
-      Simulate BB84 quantum key distribution, probability theory,
-      random processes and intercept-resend attacks.
+    <p class="muted">
+      An interactive BB84 and Probability Theory & Random Processes laboratory.
     </p>
 
     <form id="login-form">
-      <label for="username">Display name</label>
-      <input id="username" maxlength="32"
-             placeholder="Enter your display name"
-             autocomplete="nickname" required>
+      <label for="display-name">Display name</label>
+      <input id="display-name" maxlength="32" placeholder="Enter your name" required>
 
-      <label for="login-role">Choose role</label>
+      <label for="login-role">Your role</label>
       <select id="login-role">
         <option value="Alice">Alice · Sender</option>
         <option value="Bob">Bob · Receiver</option>
       </select>
 
-      <button class="primary-btn login-button" type="submit">
-        Enter quantum chat ↗
-      </button>
+      <label for="login-room">Room</label>
+      <select id="login-room">
+        <option value="server_1">Server 1 · Alpha</option>
+        <option value="server_2">Server 2 · Beta</option>
+        <option value="server_3">Server 3 · Gamma</option>
+        <option value="server_4">Server 4 · Delta</option>
+        <option value="server_5">Server 5 · Epsilon</option>
+      </select>
+
+      <button class="primary-btn full-width" type="submit">Enter quantum lab ↗</button>
     </form>
 
-    <div class="login-features">
-      <span>● BB84 simulation</span>
-      <span>● PTRP analytics</span>
-      <span>● Eve attack demo</span>
+    <div class="feature-chips">
+      <span>BB84</span><span>Monte Carlo</span><span>Eve attack</span><span>PTRP</span>
     </div>
-
-    <p class="disclaimer">
-      Academic simulation only. Do not use for confidential communication.
-    </p>
+    <p class="fine-print">Academic demonstration only. Do not use for confidential communication.</p>
   </main>
 
   <script>
-    const username = document.getElementById("username");
-    const role = document.getElementById("login-role");
+    const $ = id => document.getElementById(id);
+    $("display-name").value = localStorage.getItem("quantum_name") || "";
+    $("login-role").value = localStorage.getItem("quantum_role") || "Alice";
+    $("login-room").value = localStorage.getItem("quantum_room") || "server_1";
 
-    username.value = localStorage.getItem("quantum_display_name") || "";
-    role.value = localStorage.getItem("quantum_role") || "Alice";
-
-    document.getElementById("login-form").addEventListener("submit", event => {
+    $("login-form").addEventListener("submit", event => {
       event.preventDefault();
-
-      const name = username.value.trim();
-      if (!name) {
-        username.focus();
-        return;
-      }
-
-      localStorage.setItem("quantum_display_name", name.slice(0, 32));
-      localStorage.setItem("quantum_role", role.value);
+      const name = $("display-name").value.trim();
+      if (!name) return;
+      localStorage.setItem("quantum_name", name.slice(0, 32));
+      localStorage.setItem("quantum_role", $("login-role").value);
+      localStorage.setItem("quantum_room", $("login-room").value);
       location.href = "chat.html";
     });
   </script>
