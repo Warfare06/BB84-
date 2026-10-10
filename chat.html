@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,7 +11,6 @@
 <body class="chat-page">
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <!-- BB84 simulation modal -->
   <section id="keyGenModal" class="modal" role="dialog" aria-modal="true">
     <div class="modal-content">
       <div class="modal-heading">
@@ -18,12 +18,11 @@
           <p class="eyebrow">QUANTUM CHANNEL</p>
           <h2>BB84 Key Exchange</h2>
         </div>
-        <button class="icon-close" onclick="closeModal()">×</button>
+        <button class="icon-close" onclick="closeModal()" aria-label="Close">×</button>
       </div>
 
       <p class="muted">
-        Random bits and bases are simulated classically. This is not a
-        quantum-photon implementation.
+        Classical random-number model of BB84. No physical quantum hardware is used.
       </p>
 
       <div class="table-container">
@@ -44,7 +43,6 @@
     </div>
   </section>
 
-  <!-- PTRP analytics modal -->
   <section id="analyticsModal" class="modal" role="dialog" aria-modal="true">
     <div class="modal-content analytics-modal-content">
       <div class="modal-heading">
@@ -52,16 +50,16 @@
           <p class="eyebrow">PTRP LAB</p>
           <h2>Probability & Random Processes</h2>
         </div>
-        <button class="icon-close" onclick="toggleAnalytics(false)">×</button>
+        <button class="icon-close" onclick="toggleAnalytics(false)"
+                aria-label="Close">×</button>
       </div>
 
       <p class="muted">
-        Run repeated BB84 experiments and compare measured outcomes
-        with theoretical probabilities.
+        Monte Carlo experiments compare empirical measurements with theoretical values.
       </p>
 
       <div class="analytics-controls">
-        <label for="trial-count">Number of trials</label>
+        <label for="trial-count">Trials</label>
         <select id="trial-count">
           <option value="100">100</option>
           <option value="500" selected>500</option>
@@ -71,7 +69,7 @@
 
         <label class="check-label">
           <input id="analytics-eve" type="checkbox">
-          Include Eve
+          Include Eve in experiment
         </label>
 
         <button id="run-experiment-btn" class="primary-btn"
@@ -87,15 +85,15 @@
         <div class="metric-card">
           <span>Mean sifted bits</span>
           <strong id="metric-sifted">—</strong>
-          <small>128 photons: E[K] = 64</small>
+          <small>Theory for 128 photons: 64</small>
         </div>
         <div class="metric-card">
           <span>QBER</span>
           <strong id="metric-qber">—</strong>
-          <small id="metric-qber-note">No Eve: ideally 0%</small>
+          <small id="metric-qber-note">Run an experiment</small>
         </div>
         <div class="metric-card">
-          <span>Eve status</span>
+          <span>Eve</span>
           <strong id="metric-eve">—</strong>
           <small>Ideal intercept-resend QBER ≈ 25%</small>
         </div>
@@ -105,21 +103,18 @@
         <div class="chart-card">
           <h3>Basis matching</h3>
           <p>Observed versus theoretical probability</p>
-          <canvas id="matchChart" width="640" height="260"></canvas>
+          <canvas id="matchChart"></canvas>
         </div>
-
         <div class="chart-card">
           <h3>Sifted-key distribution</h3>
-          <p>Retained bits out of 128 photons</p>
-          <canvas id="siftChart" width="640" height="260"></canvas>
+          <p>Retained bits per 128 photons</p>
+          <canvas id="siftChart"></canvas>
         </div>
-
         <div class="chart-card">
           <h3>QBER across trials</h3>
           <p>Observed bit error rate</p>
-          <canvas id="qberChart" width="640" height="260"></canvas>
+          <canvas id="qberChart"></canvas>
         </div>
-
         <div class="chart-card">
           <h3>Probability model</h3>
           <div class="formula-list">
@@ -133,16 +128,14 @@
       </div>
 
       <p id="experiment-summary" class="experiment-summary">
-        Run an experiment to populate the graphs and statistics.
+        Run an experiment to populate the graphs.
       </p>
-
       <p class="disclaimer">
-        Educational simulation only. A QBER threshold alone does not prove security.
+        An 11% threshold is illustrative only, not a security proof.
       </p>
     </div>
   </section>
 
-  <!-- Main application -->
   <div class="app-container">
     <aside class="sidebar">
       <div class="sidebar-header">
@@ -177,11 +170,10 @@
         <div class="avatar eve-avatar">E</div>
         <div class="info">
           <strong>Eve</strong>
-          <small id="eve-state">● Interception disabled</small>
+          <small id="eve-state">● Attack disabled</small>
         </div>
-        <button id="eve-btn" class="danger-btn" onclick="triggerEveAttack()">
-          Simulate Eve attack
-        </button>
+        <button id="eve-btn" class="danger-btn"
+                onclick="toggleEveAttack()">Enable Eve</button>
       </div>
 
       <div class="sidebar-bottom">
@@ -209,8 +201,7 @@
       </header>
 
       <div class="notice-banner">
-        Simulation mode: the key exchange and XOR messaging are demonstrations,
-        not production-grade encryption.
+        Simulation mode: BB84 and XOR messaging are demonstrations, not production-grade encryption.
       </div>
 
       <div id="chat-box" class="chat-box" aria-live="polite"></div>
@@ -240,7 +231,6 @@
     </aside>
   </div>
 
-  <!-- Firebase v8 SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="script.js"></script>
