@@ -3,121 +3,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quantum Chat — BB84 Lab</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#050b18">
+  <title>Quantum Chat | BB84 PTRP</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="chat-page">
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <audio id="snd-key" preload="auto"
-    src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"></audio>
-  <audio id="snd-send" preload="auto"
-    src="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3"></audio>
-  <audio id="snd-recv" preload="auto"
-    src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"></audio>
-
-  <div id="toast" class="toast" role="status"></div>
-
-  <div class="app-container">
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <p class="eyebrow">BB84 · PTRP PROJECT</p>
-        <h2>Quantum Network</h2>
-
-        <label for="server-select">Chat room</label>
-        <select id="server-select" onchange="switchServer()">
-          <option value="server_1">Server 1 · Alpha</option>
-          <option value="server_2">Server 2 · Beta</option>
-          <option value="server_3">Server 3 · Gamma</option>
-          <option value="server_4">Server 4 · Delta</option>
-          <option value="server_5">Server 5 · Epsilon</option>
-        </select>
-
-        <label for="user-role">Your role</label>
-        <select id="user-role" onchange="setRole()">
-          <option value="Alice">Alice · Sender</option>
-          <option value="Bob">Bob · Receiver</option>
-        </select>
-      </div>
-
-      <div class="contact">
-        <div class="avatar" id="contact-avatar">B</div>
-        <div>
-          <strong id="contact-name">Bob</strong>
-          <small class="online-dot">● Chat peer</small>
-        </div>
-      </div>
-
-      <div class="contact eve-contact">
-        <div class="avatar eve-avatar">E</div>
-        <div>
-          <strong>Eve</strong>
-          <small id="eve-state">Interception disabled</small>
-        </div>
-        <button class="danger-btn" id="eve-btn"
-          onclick="triggerEveAttack()">Simulate Eve attack</button>
-      </div>
-
-      <div class="sidebar-bottom">
-        <p id="connection-state">Connecting to Firebase...</p>
-        <p>Educational communication simulation</p>
-      </div>
-    </aside>
-
-    <main class="chat-window">
-      <header class="chat-header">
-        <div>
-          <p class="eyebrow">SECURE CHAT DEMO</p>
-          <h2 id="chat-with">Chatting as Alice</h2>
-          <small id="room-label">Server 1 · Alpha</small>
-        </div>
-
-        <div class="header-actions">
-          <span id="key-status" class="key-status">No shared key</span>
-          <button class="secondary-btn"
-            onclick="toggleCryptoLogs()">Crypto logs</button>
-          <button class="secondary-btn"
-            onclick="toggleAnalytics(true)">PTRP analytics</button>
-        </div>
-      </header>
-
-      <div class="notice-banner">
-        Simulation only: this prototype does not provide production-grade
-        quantum encryption.
-      </div>
-
-      <div id="chat-box" class="chat-box" aria-live="polite"></div>
-      <div id="typing-indicator" class="typing-indicator"></div>
-
-      <footer class="input-area">
-        <button class="bb84-btn" id="keygen-btn"
-          onclick="generateBB84Key()">Generate BB84 Key</button>
-
-        <textarea id="msg-input" rows="1"
-          placeholder="Type a message..."
-          aria-label="Message"></textarea>
-
-        <button class="send-btn" onclick="sendMessage()">Send ↗</button>
-      </footer>
-    </main>
-
-    <aside class="crypto-sidebar" id="crypto-sidebar">
-      <div class="log-header">
-        <h3>Encryption Logs</h3>
-        <button class="icon-close"
-          onclick="toggleCryptoLogs()">×</button>
-      </div>
-      <div id="crypto-log-content" class="crypto-log-content">
-        <p class="muted empty-state">
-          Encryption and decryption details appear here.
-        </p>
-      </div>
-    </aside>
-  </div>
-
-  <!-- BB84 visualization -->
-  <section id="keyGenModal" class="modal">
-    <div class="modal-content key-modal-content">
+  <!-- BB84 simulation modal -->
+  <section id="keyGenModal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-content">
       <div class="modal-heading">
         <div>
           <p class="eyebrow">QUANTUM CHANNEL</p>
@@ -127,46 +23,46 @@
       </div>
 
       <p class="muted">
-        Random bits, random bases, measurement, and basis reconciliation.
+        Random bits and bases are simulated classically. This is not a
+        quantum-photon implementation.
       </p>
 
       <div class="table-container">
         <table id="bb84Table">
-          <tr id="row-bits"><th>Alice's bits</th></tr>
-          <tr id="row-s-bases"><th>Alice's bases</th></tr>
-          <tr id="row-e-bases"><th>Eve's bases</th></tr>
-          <tr id="row-r-bases"><th>Bob's bases</th></tr>
-          <tr id="row-match"><th>Bases match?</th></tr>
-          <tr id="row-key"><th>Sifted bit</th></tr>
+          <tbody>
+            <tr id="row-bits"><th>Alice's bits</th></tr>
+            <tr id="row-s-bases"><th>Alice's bases</th></tr>
+            <tr id="row-e-bases"><th>Eve's bases</th></tr>
+            <tr id="row-r-bases"><th>Bob's bases</th></tr>
+            <tr id="row-match"><th>Bases match?</th></tr>
+            <tr id="row-key"><th>Sifted bit</th></tr>
+          </tbody>
         </table>
       </div>
 
-      <div id="key-gen-status" class="modal-status">
-        Initializing simulation...
-      </div>
-      <div id="key-result" class="key-result"></div>
+      <p id="key-gen-status" class="modal-status">Preparing simulation…</p>
+      <p id="key-result" class="key-result"></p>
     </div>
   </section>
 
-  <!-- Probability and random-process analytics -->
-  <section id="analyticsModal" class="modal">
+  <!-- PTRP analytics modal -->
+  <section id="analyticsModal" class="modal" role="dialog" aria-modal="true">
     <div class="modal-content analytics-modal-content">
       <div class="modal-heading">
         <div>
-          <p class="eyebrow">PROBABILITY THEORY & RANDOM PROCESSES</p>
-          <h2>PTRP Analytics Dashboard</h2>
+          <p class="eyebrow">PTRP LAB</p>
+          <h2>Probability & Random Processes</h2>
         </div>
-        <button class="icon-close"
-          onclick="toggleAnalytics(false)">×</button>
+        <button class="icon-close" onclick="toggleAnalytics(false)">×</button>
       </div>
 
       <p class="muted">
-        Run repeated simulations and compare experimental outcomes
-        with theoretical probability.
+        Run repeated BB84 experiments and compare measured outcomes
+        with theoretical probabilities.
       </p>
 
       <div class="analytics-controls">
-        <label for="trial-count">Monte Carlo trials</label>
+        <label for="trial-count">Number of trials</label>
         <select id="trial-count">
           <option value="100">100</option>
           <option value="500" selected>500</option>
@@ -175,12 +71,12 @@
         </select>
 
         <label class="check-label">
-          <input type="checkbox" id="analytics-eve">
-          Enable Eve
+          <input id="analytics-eve" type="checkbox">
+          Include Eve
         </label>
 
-        <button class="primary-btn" id="run-experiment-btn"
-          onclick="runMonteCarlo()">Run experiment</button>
+        <button id="run-experiment-btn" class="primary-btn"
+                onclick="runMonteCarlo()">Run experiment</button>
       </div>
 
       <div class="metric-grid">
@@ -189,68 +85,163 @@
           <strong id="metric-match">—</strong>
           <small>Theory: 50%</small>
         </div>
-
         <div class="metric-card">
-          <span>Mean sifted bits / 128 photons</span>
+          <span>Mean sifted bits</span>
           <strong id="metric-sifted">—</strong>
-          <small>Theory: 64</small>
+          <small>128 photons: E[K] = 64</small>
         </div>
-
         <div class="metric-card">
-          <span>Quantum bit error rate</span>
+          <span>QBER</span>
           <strong id="metric-qber">—</strong>
           <small id="metric-qber-note">No Eve: ideally 0%</small>
         </div>
-
         <div class="metric-card">
-          <span>Eve error estimate</span>
+          <span>Eve status</span>
           <strong id="metric-eve">—</strong>
-          <small>Theory with intercept-resend: 25%</small>
+          <small>Ideal intercept-resend QBER ≈ 25%</small>
         </div>
       </div>
 
       <div class="charts-grid">
         <div class="chart-card">
-          <h3>Basis matching probability</h3>
-          <p>Experimental result versus theory</p>
-          <canvas id="matchChart"></canvas>
+          <h3>Basis matching</h3>
+          <p>Observed versus theoretical probability</p>
+          <canvas id="matchChart" width="640" height="260"></canvas>
         </div>
 
         <div class="chart-card">
-          <h3>Sifted-key length distribution</h3>
+          <h3>Sifted-key distribution</h3>
           <p>Retained bits out of 128 photons</p>
-          <canvas id="siftChart"></canvas>
+          <canvas id="siftChart" width="640" height="260"></canvas>
         </div>
 
         <div class="chart-card">
           <h3>QBER across trials</h3>
-          <p>Observed error rate in repeated experiments</p>
-          <canvas id="qberChart"></canvas>
+          <p>Observed bit error rate</p>
+          <canvas id="qberChart" width="640" height="260"></canvas>
         </div>
 
         <div class="chart-card">
           <h3>Probability model</h3>
           <div class="formula-list">
             <div><span>Basis match</span><code>P(M) = 1/2</code></div>
-            <div><span>Sifted-key length</span><code>K ~ Binomial(N, 1/2)</code></div>
+            <div><span>Sifted length</span><code>K ~ Binomial(N, 1/2)</code></div>
             <div><span>Expected length</span><code>E[K] = N/2</code></div>
             <div><span>Variance</span><code>Var(K) = N/4</code></div>
-            <div><span>Ideal Eve QBER</span><code>E[QBER] = 1/4</code></div>
+            <div><span>QBER with Eve</span><code>≈ 1/4</code></div>
           </div>
         </div>
       </div>
 
       <p id="experiment-summary" class="experiment-summary">
-        Run an experiment to populate the graphs.
+        Run an experiment to populate the graphs and statistics.
       </p>
 
       <p class="disclaimer">
-        Educational simulation only. The graphs show Monte Carlo estimates,
-        not results from real quantum hardware.
+        Educational simulation only. A QBER threshold alone does not prove security.
       </p>
     </div>
   </section>
 
+  <!-- Main application -->
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <p class="eyebrow">BB84 • PTRP PROJECT</p>
+        <h2>Quantum Network</h2>
+
+        <label class="field-label" for="server-select">Room</label>
+        <select id="server-select" onchange="switchServer()">
+          <option value="server_1">Server 1 · Alpha</option>
+          <option value="server_2">Server 2 · Beta</option>
+          <option value="server_3">Server 3 · Gamma</option>
+          <option value="server_4">Server 4 · Delta</option>
+          <option value="server_5">Server 5 · Epsilon</option>
+        </select>
+
+        <label class="field-label" for="user-role">Your role</label>
+        <select id="user-role" onchange="setRole()">
+          <option value="Alice">Alice · Sender</option>
+          <option value="Bob">Bob · Receiver</option>
+        </select>
+      </div>
+
+      <div class="contact">
+        <div class="avatar" id="contact-avatar">B</div>
+        <div class="info">
+          <strong id="contact-name">Bob</strong>
+          <small>Chat participant</small>
+        </div>
+      </div>
+
+      <div class="contact eve-contact">
+        <div class="avatar eve-avatar">E</div>
+        <div class="info">
+          <strong>Eve</strong>
+          <small id="eve-state">● Interception disabled</small>
+        </div>
+        <button id="eve-btn" class="danger-btn" onclick="triggerEveAttack()">
+          Simulate Eve attack
+        </button>
+      </div>
+
+      <div class="sidebar-bottom">
+        <div class="status-pill">
+          <span class="status-dot"></span>
+          <span id="connection-state">Connecting to Firebase…</span>
+        </div>
+        <p>Prototype chat · BB84 simulation</p>
+      </div>
+    </aside>
+
+    <main class="chat-window">
+      <header class="chat-header">
+        <div>
+          <p class="eyebrow">DEMO COMMUNICATION ROOM</p>
+          <h2 id="chat-with">Chatting as: Alice</h2>
+          <small id="room-label">Server 1 · Alpha</small>
+        </div>
+        <div class="header-actions">
+          <span id="key-status" class="key-status">No shared key</span>
+          <button class="secondary-btn" onclick="toggleCryptoLogs()">Crypto logs</button>
+          <button class="secondary-btn" onclick="toggleAnalytics(true)">PTRP analytics</button>
+          <button class="secondary-btn" onclick="exportExperimentCSV()">Export CSV</button>
+        </div>
+      </header>
+
+      <div class="notice-banner">
+        Simulation mode: the key exchange and XOR messaging are demonstrations,
+        not production-grade encryption.
+      </div>
+
+      <div id="chat-box" class="chat-box" aria-live="polite"></div>
+      <div id="typing-indicator" class="typing-indicator">Peer is typing…</div>
+
+      <footer class="input-area">
+        <button class="bb84-btn" id="keygen-btn" onclick="generateBB84Key()">
+          Generate BB84 key
+        </button>
+        <textarea id="msg-input" placeholder="Type a message…"
+                  aria-label="Message" rows="1"></textarea>
+        <button class="send-btn" onclick="sendMessage()">Send ↗</button>
+      </footer>
+    </main>
+
+    <aside class="crypto-sidebar" id="crypto-sidebar">
+      <div class="log-header">
+        <div>
+          <p class="eyebrow">TRACE VIEW</p>
+          <h3>Encryption logs</h3>
+        </div>
+        <button class="icon-close" onclick="toggleCryptoLogs()">×</button>
+      </div>
+      <div id="crypto-log-content" class="crypto-log-content">
+        <p class="muted empty-state">Simulation traces appear here.</p>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Firebase v8 SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="script.js"></script>
