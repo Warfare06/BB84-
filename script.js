@@ -1084,6 +1084,31 @@ function drawEmptyCharts() {
   drawLineChart($("qberChart"), [], 0.5, 0);
 }
 
+function updateCurrentStats() {
+    // Update the current key statistics on the dashboard.
+    const keyLengthEl = document.getElementById("keyLength");
+    const qberEl = document.getElementById("qberValue");
+    const statusEl = document.getElementById("keyStatus");
+
+    if (keyLengthEl) {
+        keyLengthEl.textContent = String(
+            Array.isArray(sharedKey) ? sharedKey.length : 0
+        );
+    }
+
+    if (qberEl) {
+        qberEl.textContent = typeof currentQBER !== "undefined"
+            ? `${(currentQBER * 100).toFixed(2)}%`
+            : "—";
+    }
+
+    if (statusEl) {
+        statusEl.textContent = Array.isArray(sharedKey) && sharedKey.length
+            ? "Key Generated"
+            : "Waiting";
+    }
+}
+
 /* ---------------- ANALYTICS MODAL ---------------- */
 
 function toggleAnalytics(forceOpen) {
