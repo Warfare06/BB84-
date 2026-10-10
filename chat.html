@@ -1,114 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantum WhatsApp - BB84</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#050b18">
+  <title>Quantum Chat — BB84 Lab</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <audio id="snd-key" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3" preload="auto"></audio>
-    <audio id="snd-send" src="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3" preload="auto"></audio>
-    <audio id="snd-recv" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" preload="auto"></audio>
+<body class="chat-page">
+  <audio id="snd-key" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3" preload="auto"></audio>
+  <audio id="snd-send" src="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3" preload="auto"></audio>
+  <audio id="snd-recv" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" preload="auto"></audio>
+  <div id="toast" class="toast" role="status" aria-live="polite">Notice</div>
 
-    <div id="toast" class="toast">⚠️ Warning Message</div>
+  <div class="woodsprites-container" aria-hidden="true">
+    <div class="woodsprite"></div><div class="woodsprite"></div><div class="woodsprite"></div><div class="woodsprite"></div>
+    <div class="woodsprite"></div><div class="woodsprite"></div><div class="woodsprite"></div><div class="woodsprite"></div>
+  </div>
 
-    <div class="woodsprites-container">
-        <div class="woodsprite"></div><div class="woodsprite"></div>
-        <div class="woodsprite"></div><div class="woodsprite"></div>
-        <div class="woodsprite"></div><div class="woodsprite"></div>
-        <div class="woodsprite"></div><div class="woodsprite"></div>
+  <section id="keyGenModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="key-modal-title">
+    <div class="modal-content key-modal-content">
+      <div class="modal-heading">
+        <div><p class="eyebrow">QUANTUM CHANNEL</p><h2 id="key-modal-title">BB84 Key Exchange</h2></div>
+        <button class="icon-close" onclick="closeModal()" aria-label="Close key exchange">×</button>
+      </div>
+      <p class="muted">A teaching simulation of random photon bits, basis selection, intercept-resend, and basis reconciliation.</p>
+      <div class="table-container">
+        <table id="bb84Table">
+          <tr id="row-bits"><th>Alice's bits</th></tr>
+          <tr id="row-s-bases"><th>Alice's bases</th></tr>
+          <tr id="row-e-bases"><th>Eve's bases</th></tr>
+          <tr id="row-r-bases"><th>Bob's bases</th></tr>
+          <tr id="row-match"><th>Bases match?</th></tr>
+          <tr id="row-key"><th>Sifted bit</th></tr>
+        </table>
+      </div>
+      <div id="key-gen-status" class="modal-status">Initializing simulation…</div>
+      <div id="key-result" class="key-result"></div>
     </div>
+  </section>
 
-    <div id="keyGenModal" class="modal">
-        <div class="modal-content" style="border-color: #5BC0BE; max-width: 950px; box-shadow: 0 0 40px rgba(91, 192, 190, 0.4);">
-            <h2 style="color: #5BC0BE;">BB84 Quantum Key Exchange</h2>
-            <p style="color: gray; margin-bottom: 15px;">Simulating photon polarization and basis reconciliation over quantum channel...</p>
-            
-            <div class="table-container" style="overflow-x: auto;">
-                <table id="bb84Table" style="font-size: 14px; text-align: center; width: 100%;">
-                    <tr id="row-bits"><th style="text-align:left; color: white;">Alice's Bits</th></tr>
-                    <tr id="row-s-bases"><th style="text-align:left; color: #00C2FF;">Alice's Bases</th></tr>
-                    <tr id="row-r-bases"><th style="text-align:left; color: #5BC0BE;">Bob's Bases</th></tr>
-                    <tr id="row-match"><th style="text-align:left; color: white;">Basis Match?</th></tr>
-                    <tr id="row-key"><th style="text-align:left; color: var(--neon-blue);">Final Key Bit</th></tr>
-                </table>
-            </div>
-            <div id="key-gen-status" style="margin-top: 20px; color: var(--header-cyan); font-weight: bold; text-align: center; font-family: monospace; font-size: 16px;">
-                Initializing Quantum Channel...
-            </div>
+  <section id="analyticsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="analytics-title">
+    <div class="modal-content analytics-modal-content">
+      <div class="modal-heading">
+        <div><p class="eyebrow">PTRP LAB</p><h2 id="analytics-title">Probability & Random-Process Analytics</h2></div>
+        <button class="icon-close" onclick="toggleAnalytics(false)" aria-label="Close analytics">×</button>
+      </div>
+      <p class="muted">Monte Carlo experiments compare theoretical probabilities with simulated outcomes. Graphs are generated in this browser.</p>
+      <div class="analytics-controls">
+        <label for="trial-count">Number of trials</label>
+        <select id="trial-count">
+          <option value="100">100</option><option value="500" selected>500</option><option value="1000">1,000</option><option value="5000">5,000</option>
+        </select>
+        <label class="check-label"><input id="analytics-eve" type="checkbox"> Include Eve (intercept-resend)</label>
+        <button id="run-experiment-btn" class="primary-btn" onclick="runMonteCarlo()">Run experiment</button>
+      </div>
+      <div class="metric-grid">
+        <div class="metric-card"><span>Basis-match probability</span><strong id="metric-match">—</strong><small>Theory: 50%</small></div>
+        <div class="metric-card"><span>Mean sifted bits / 128 photons</span><strong id="metric-sifted">—</strong><small>Theory: 64 bits</small></div>
+        <div class="metric-card"><span>QBER</span><strong id="metric-qber">—</strong><small id="metric-qber-note">No Eve: ideally 0%</small></div>
+        <div class="metric-card"><span>Estimated Eve error</span><strong id="metric-eve">—</strong><small>Intercept-resend theory: 25% on sifted bits</small></div>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-card"><h3>Basis matching per trial</h3><p>Empirical matching probability vs theoretical 0.5</p><canvas id="matchChart" width="640" height="260"></canvas></div>
+        <div class="chart-card"><h3>Sifted-key length distribution</h3><p>Number of retained bits from 128 photons</p><canvas id="siftChart" width="640" height="260"></canvas></div>
+        <div class="chart-card"><h3>QBER across trials</h3><p>Observed error rate after basis sifting</p><canvas id="qberChart" width="640" height="260"></canvas></div>
+        <div class="chart-card"><h3>Probability model</h3><p>Expected outcome for independent random bases</p>
+          <div class="formula-list">
+            <div><span>Basis match</span><code>P(M) = 1/2</code></div>
+            <div><span>Sifted-key length</span><code>K ~ Binomial(N, 1/2)</code></div>
+            <div><span>Expected sifted bits</span><code>E[K] = N/2</code></div>
+            <div><span>Variance</span><code>Var(K) = N/4</code></div>
+            <div><span>QBER with Eve</span><code>E[QBER] ≈ 1/4</code></div>
+          </div>
         </div>
+      </div>
+      <p id="experiment-summary" class="experiment-summary">Run an experiment to populate the graphs and statistics.</p>
+      <p class="disclaimer">Educational simulation only — not a production quantum device or a security-certified cryptosystem.</p>
     </div>
+  </section>
 
-    <div class="app-container">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h3 style="color: white; margin-bottom: 10px;">Quantum Network</h3>
-                
-                <select id="server-select" onchange="switchServer()" style="width: 100%; margin-bottom: 10px; background: #050505; color: #00C2FF; border: 1px solid #00C2FF; border-radius: 5px; padding: 8px; outline: none; cursor: pointer; font-weight: bold;">
-                    <option value="server_1">Server 1 (Alpha)</option>
-                    <option value="server_2">Server 2 (Beta)</option>
-                    <option value="server_3">Server 3 (Gamma)</option>
-                    <option value="server_4">Server 4 (Delta)</option>
-                    <option value="server_5">Server 5 (Epsilon)</option>
-                </select>
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <p class="eyebrow">BB84 • PTRP PROJECT</p>
+        <h2>Quantum Network</h2>
+        <label class="field-label" for="server-select">Room</label>
+        <select id="server-select" onchange="switchServer()">
+          <option value="server_1">Server 1 · Alpha</option><option value="server_2">Server 2 · Beta</option>
+          <option value="server_3">Server 3 · Gamma</option><option value="server_4">Server 4 · Delta</option>
+          <option value="server_5">Server 5 · Epsilon</option>
+        </select>
+        <label class="field-label" for="user-role">Your role</label>
+        <select id="user-role" onchange="setRole()"><option value="Alice">Alice · Sender</option><option value="Bob">Bob · Receiver</option></select>
+      </div>
+      <div class="contact active">
+        <div class="avatar" id="contact-avatar">B</div>
+        <div class="info"><strong id="contact-name">Bob</strong><small class="online-dot">● Peer in this room</small></div>
+      </div>
+      <div class="contact eve-contact">
+        <div class="avatar eve-avatar">E</div>
+        <div class="info"><strong>Eve</strong><small id="eve-state">● Interception disabled</small></div>
+        <button id="eve-btn" class="danger-btn" onclick="triggerEveAttack()">Simulate Eve attack</button>
+      </div>
+      <div class="sidebar-bottom">
+        <div class="status-pill"><span class="status-dot"></span><span id="connection-state">Connecting to Firebase…</span></div>
+        <p>Prototype chat · BB84 simulation</p>
+      </div>
+    </aside>
 
-                <select id="user-role" onchange="setRole()" style="width: 100%; background: #121212; color: #5BC0BE; border: 1px solid #5BC0BE; border-radius: 5px; padding: 8px; outline: none; cursor: pointer;">
-                    <option value="Alice">I am Alice</option>
-                    <option value="Bob">I am Bob</option>
-                </select>
-            </div>
-            
-            <div class="contact active">
-                <div class="avatar" id="contact-avatar">B</div>
-                <div class="info"><strong id="contact-name">Bob</strong><small style="color: #00C2FF;">• Secured</small></div>
-            </div>
-            
-            <div class="contact" style="flex-direction: column; align-items: flex-start; cursor: default;">
-                <div style="display: flex; align-items: center; width: 100%;">
-                    <div class="avatar" style="background: #630d16; color: white;">E</div>
-                    <div class="info"><strong>Eve</strong><small style="color: gray;">• Eavesdropper</small></div>
-                </div>
-                <button onclick="triggerEveAttack()" style="margin-top: 10px; width: 100%; background: rgba(255,0,0,0.1); border: 1px solid #ff4444; color: #ff4444; padding: 6px; border-radius: 5px; font-size: 11px; cursor: pointer; transition: 0.3s;" onmouseover="this.style.background='rgba(255,0,0,0.5)'; this.style.color='white';" onmouseout="this.style.background='rgba(255,0,0,0.1)'; this.style.color='#ff4444';">
-                    🚨 SIMULATE INTERCEPTION
-                </button>
-            </div>
-        </aside>
+    <main class="chat-window">
+      <header class="chat-header">
+        <div><p class="eyebrow">ENCRYPTED DEMO ROOM</p><h2 id="chat-with">Chatting as: Alice</h2><small id="room-label">Server 1 · Alpha</small></div>
+        <div class="header-actions">
+          <span id="key-status" class="key-status" aria-live="polite">No shared key</span>
+          <button onclick="toggleCryptoLogs()" class="secondary-btn">Crypto logs</button>
+          <button onclick="toggleAnalytics(true)" class="secondary-btn analytics-open-btn">PTRP analytics</button>
+        </div>
+      </header>
+      <div class="notice-banner"><span>ⓘ</span><span>Simulation mode: key exchange and XOR are educational demonstrations, not production-grade end-to-end encryption.</span></div>
+      <div id="chat-box" class="chat-box" aria-live="polite"></div>
+      <div id="typing-indicator" class="typing-indicator">Peer is typing…</div>
+      <footer class="input-area">
+        <button class="bb84-btn" id="keygen-btn" onclick="generateBB84Key()">Generate BB84 key</button>
+        <textarea id="msg-input" placeholder="Type a message…" autocomplete="off" aria-label="Message" rows="1"></textarea>
+        <button class="send-btn" onclick="sendMessage()">Send ↗</button>
+      </footer>
+    </main>
 
-        <main class="chat-window">
-            
-            <header class="chat-header">
-                <h3 id="chat-with" style="color: white;">Chatting as: Alice</h3>
-                <div style="display: flex; gap: 15px; align-items: center;">
-                    <span id="key-status" style="visibility: hidden;">Key: None</span>
-                    <button onclick="toggleCryptoLogs()" class="log-btn">📄 View Crypto Logs</button>
-                </div>
-            </header>
+    <aside class="crypto-sidebar" id="crypto-sidebar" aria-label="Encryption logs">
+      <div class="log-header"><div><p class="eyebrow">TRACE VIEW</p><h3>Encryption logs</h3></div><button class="icon-close" onclick="toggleCryptoLogs()" aria-label="Close logs">×</button></div>
+      <div id="crypto-log-content" class="crypto-log-content"><p class="muted empty-state">Encryption and decryption traces appear here.</p></div>
+    </aside>
+  </div>
 
-            <div id="chat-box" class="chat-box"></div>
-
-            <div id="typing-indicator" class="typing-indicator">...</div>
-
-            <footer class="input-area">
-                <button class="bb84-btn" onclick="generateBB84Key()">KEY GEN</button>
-                <textarea id="msg-input" placeholder="Type secure message..." autocomplete="off"></textarea>
-                <button class="send-btn" onclick="sendMessage()">SEND</button>
-            </footer>
-        </main>
-
-        <aside class="crypto-sidebar" id="crypto-sidebar">
-            <div class="sidebar-header" style="display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="color: var(--neon-blue); font-size: 16px;">Encryption Logs</h3>
-                <span class="close" style="font-size: 24px;" onclick="toggleCryptoLogs()">&times;</span>
-            </div>
-            <div id="crypto-log-content" class="crypto-log-content">
-                </div>
-        </aside>
-
-    </div>
-
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="script.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
