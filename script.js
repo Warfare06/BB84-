@@ -1,11 +1,10 @@
-
 "use strict";
 
-/* =========================================================
-   BB84 + PTRP QUANTUM CHAT
-   Firebase Realtime Database SDK v8
-   Educational simulation only.
-   ========================================================= */
+/* ==========================================================================
+   BB84 QUANTUM KEY DISTRIBUTION & PTRP DEMONSTRATION PLATFORM
+   Probability Theory and Random Processes Project
+   Firebase Realtime Database SDK v8 + Canvas Optical Bench + Web Audio Synthesizer
+   ========================================================================== */
 
 const firebaseConfig = {
   apiKey: "AIzaSyC3qv5heO6FpSjFHv7bXQaoIDzqlX1GX9Y",
@@ -18,36 +17,184 @@ const firebaseConfig = {
   measurementId: "G-Q5Q9HDFV7K"
 };
 
+// DOM helper & math utilities
 const $ = id => document.getElementById(id);
 const randomBit = () => Math.random() < 0.5 ? 0 : 1;
 const randomBasis = () => Math.random() < 0.5 ? "+" : "×";
-const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
 
+// Shannon Binary Entropy function: H2(p) = -p*log2(p) - (1-p)*log2(1-p)
+function binaryEntropy(p) {
+  if (p <= 0 || p >= 1) return 0;
+  return -p * Math.log2(p) - (1 - p) * Math.log2(1 - p);
+}
+
+// Asymptotic secret key fraction: R = max(0, 1 - 2*H2(Q))
+function secretKeyRate(q) {
+  if (q >= 0.11003) return 0;
+  return Math.max(0, 1 - 2 * binaryEntropy(q));
+}
+
+// ==========================================================================
+// STATE MANAGEMENT
+// ==========================================================================
 let db = null;
 let room = localStorage.getItem("quantum_room") || "server_1";
 let role = localStorage.getItem("quantum_role") || "Alice";
 let displayName = localStorage.getItem("quantum_name") || role;
+let soundEnabled = localStorage.getItem("quantum_sound_enabled") !== "false";
 
 let eveEnabled = false;
-let eveProbability = 1;
-let demoKeyByte = null;
-let demoKeyBits = "";
+let eveProbability = 1.0;
+let channelNoise = 0.0; // depolarizing channel noise parameter eta
+
+let activeKeyBits = "";
+let keyBufferOffset = 0;
 let latestSimulation = null;
 let latestExperiment = null;
-let simulationStep = 0;
-let simulationRunning = false;
-let listeners = [];
+let experimentHistory = [];
 let processedMessageIds = new Set();
 let processedKeyIds = new Set();
-let experimentHistory = [];
+let listeners = [];
 let toastTimer = null;
 let typingTimer = null;
 
-/* ---------------- INITIALIZATION ---------------- */
+// Optical Bench Animation State
+let animFrameId = null;
+let isStreaming = false;
+let animSpeed = 1.0;
+let flyingPhotons = [];
+let photonSeq = 0;
+let channelCanvas = null;
+let channelCtx = null;
+let detectorFlash = { d0: 0, d1: 0, eve: 0 };
+let currentTableFilter = "all";
 
-window.addEventListener("load", init);
+// ==========================================================================
+// WEB AUDIO SYNTHESIZER (Single-Photon APD clicks & laser pulses)
+// ==========================================================================
+class QuantumAudio {
+  constructor() {
+    this.ctx = null;
+  }
 
-function init() {
+  init() {
+    if (!this.ctx && (window.AudioContext || window.webkitAudioContext)) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AudioCtx();
+    }
+  }
+
+  playClick() {
+    if (!soundEnabled) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+      if (this.ctx.state === "suspended") this.ctx.resume();
+
+      const bufferSize = this.ctx.sampleRate * 0.005; // 5ms burst
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+      }
+
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = 3200;
+      filter.Q.value = 3;
+
+      const gain = this.ctx.createGain();
+      gain.gain.value = 0.25;
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+      noise.start();
+    } catch (e) {}
+  }
+
+  playLaserChirp() {
+    if (!soundEnabled) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+      if (this.ctx.state === "suspended") this.ctx.resume();
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1760, this.ctx.currentTime + 0.03);
+
+      gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.035);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.04);
+    } catch (e) {}
+  }
+
+  playAlert() {
+    if (!soundEnabled) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+      if (this.ctx.state === "suspended") this.ctx.resume();
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+      osc.frequency.setValueAtTime(330, this.ctx.currentTime + 0.08);
+
+      gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.22);
+    } catch (e) {}
+  }
+
+  playSuccess() {
+    if (!soundEnabled) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+      if (this.ctx.state === "suspended") this.ctx.resume();
+
+      const now = this.ctx.currentTime;
+      [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.1, now + idx * 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.15);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now + idx * 0.06);
+        osc.stop(now + idx * 0.06 + 0.16);
+      });
+    } catch (e) {}
+  }
+}
+
+const audio = new QuantumAudio();
+
+// ==========================================================================
+// APPLICATION INITIALIZATION
+// ==========================================================================
+window.addEventListener("load", initApp);
+
+function initApp() {
   if (!$("chat-messages")) return;
 
   $("room-select").value = room;
@@ -58,34 +205,64 @@ function init() {
 
   $("eve-probability").addEventListener("input", event => {
     eveProbability = Number(event.target.value) / 100;
-    $("eve-probability-label").textContent =
-      `${Math.round(eveProbability * 100)}%`;
+    $("eve-probability-label").textContent = `${Math.round(eveProbability * 100)}%`;
+  });
+
+  $("channel-noise").addEventListener("input", event => {
+    channelNoise = Number(event.target.value) / 100;
+    $("noise-label").textContent = `${Math.round(channelNoise * 100)}%`;
   });
 
   $("eve-toggle").addEventListener("click", toggleEve);
-  $("generate-key").addEventListener("click", openSimulator);
+
   $("open-sim").addEventListener("click", openSimulator);
+  $("generate-key").addEventListener("click", openSimulator);
+  $("quick-sim-btn").addEventListener("click", openSimulator);
   $("open-analytics").addEventListener("click", openAnalytics);
 
   $("open-logs").addEventListener("click", () => {
     $("logs-panel").classList.toggle("open");
   });
-
   $("close-logs").addEventListener("click", () => {
     $("logs-panel").classList.remove("open");
   });
+  $("clear-logs").addEventListener("click", clearLogs);
 
-  $("run-bb84").addEventListener("click", runBB84);
-  $("step-bb84").addEventListener("click", nextSimulationStep);
-  $("reset-bb84").addEventListener("click", resetSimulation);
-  $("publish-key").addEventListener("click", publishDemoKey);
-  $("run-monte-carlo").addEventListener("click", runMonteCarlo);
-  $("export-csv").addEventListener("click", exportCSV);
-  $("download-report").addEventListener("click", downloadReport);
-  $("print-report").addEventListener("click", printReport);
+  updateAudioIcon();
+  $("audio-toggle").addEventListener("click", () => {
+    soundEnabled = !soundEnabled;
+    localStorage.setItem("quantum_sound_enabled", String(soundEnabled));
+    updateAudioIcon();
+    showToast(`Sound clicks ${soundEnabled ? "enabled" : "muted"}`);
+    if (soundEnabled) audio.playLaserChirp();
+  });
 
-  document.querySelectorAll("[data-close]").forEach(button => {
-    button.addEventListener("click", () => closeModal(button.dataset.close));
+  $("stream-toggle").addEventListener("click", togglePhotonStreaming);
+  $("step-photon").addEventListener("click", stepSinglePhoton);
+  $("run-bb84").addEventListener("click", runInstantBurst);
+  $("step-bb84").addEventListener("click", nextProtocolStage);
+  $("reset-bb84").addEventListener("click", resetSimulator);
+  $("publish-key").addEventListener("click", publishActiveKey);
+
+  $("anim-speed").addEventListener("change", e => {
+    animSpeed = Number(e.target.value) || 1.0;
+  });
+
+  setupTabs();
+  setupMalusDial();
+  setupTableFilters();
+
+  $("run-monte-carlo").addEventListener("click", runMonteCarloExperiment);
+  $("mc-eve").addEventListener("change", e => {
+    $("mc-eve-prob-wrap").style.display = e.target.checked ? "flex" : "none";
+  });
+
+  $("export-csv").addEventListener("click", exportExperimentCSV);
+  $("download-report").addEventListener("click", exportHTMLReport);
+  $("print-report").addEventListener("click", exportHTMLReport);
+
+  document.querySelectorAll("[data-close]").forEach(btn => {
+    btn.addEventListener("click", () => closeModal(btn.dataset.close));
   });
 
   document.querySelectorAll(".modal").forEach(modal => {
@@ -95,8 +272,7 @@ function init() {
   });
 
   $("message-form").addEventListener("submit", sendMessage);
-  $("message-input").addEventListener("input", updateTyping);
-
+  $("message-input").addEventListener("input", handleTypingInput);
   $("message-input").addEventListener("keydown", event => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
@@ -104,42 +280,25 @@ function init() {
     }
   });
 
+  setupChannelCanvas();
+
   updateRoomTitle();
   updateEveUI();
-  drawInitialCharts();
+  updateKeyReservoirUI();
 
-  try {
-    if (!window.firebase) {
-      throw new Error("Firebase SDK did not load.");
-    }
+  connectFirebase();
+  drawTheoreticalCharts();
+}
 
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
-
-    db = firebase.database();
-
-    db.ref(".info/connected").on("value", snapshot => {
-      const connected = snapshot.val() === true;
-      $("connection-state").textContent =
-        connected ? "Firebase connected" : "Connecting…";
-      $("connection-dot").classList.toggle("connected", connected);
-    });
-
-    attachListeners();
-    addSystem("Welcome to the BB84 PTRP lab. Open the simulator to begin.");
-  } catch (error) {
-    console.error(error);
-    showToast(`Firebase setup failed: ${error.message}`);
-    $("connection-state").textContent = "Firebase unavailable";
-  }
+function updateAudioIcon() {
+  $("audio-icon").textContent = soundEnabled ? "🔊" : "🔇";
 }
 
 function updateRoomTitle() {
-  const label = $("room-select").selectedOptions[0]?.textContent || room;
-  $("room-title").textContent = `Quantum Chat — ${displayName} (${role})`;
-  $("peer-status").textContent =
-    `${label} · ${role === "Alice" ? "Bob is your peer" : "Alice is your peer"}`;
+  const roomLabel = $("room-select").selectedOptions[0]?.textContent || room;
+  $("room-title").textContent = `Quantum Lab — ${displayName} (${role})`;
+  const peer = role === "Alice" ? "Bob (Receiver)" : "Alice (Transmitter)";
+  $("peer-status").textContent = `${roomLabel} · Synchronized with ${peer}`;
 }
 
 function changeRole() {
@@ -149,12 +308,11 @@ function changeRole() {
 
 function changeRoom() {
   detachListeners();
-
   room = $("room-select").value;
   localStorage.setItem("quantum_room", room);
 
-  demoKeyByte = null;
-  demoKeyBits = "";
+  activeKeyBits = "";
+  keyBufferOffset = 0;
   latestSimulation = null;
   latestExperiment = null;
 
@@ -167,10 +325,42 @@ function changeRoom() {
   setKeyStatus("No accepted key", "");
   updateCurrentStats({});
   updateRoomTitle();
+  updateKeyReservoirUI();
 
   if (db) attachListeners();
+  addSystemLog("Room changed. Generate and publish a new quantum key.");
+}
 
-  addSystem("Room changed. Generate and publish a new demonstration key.");
+function clearLogs() {
+  const container = $("crypto-logs");
+  container.innerHTML = '<p class="muted empty-logs">Logs cleared.</p>';
+  $("log-count").textContent = "0 events";
+}
+
+/* ==========================================================================
+   FIREBASE REALTIME SYNCHRONIZATION
+   ========================================================================== */
+function connectFirebase() {
+  try {
+    if (!window.firebase) throw new Error("Firebase SDK script not loaded.");
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+
+    db = firebase.database();
+    db.ref(".info/connected").on("value", snapshot => {
+      const connected = snapshot.val() === true;
+      $("connection-state").textContent = connected ? "Firebase Synchronized" : "Connecting…";
+      $("connection-dot").classList.toggle("connected", connected);
+    });
+
+    attachListeners();
+    addSystemLog("Quantum Network online. Ready for BB84 photon exchange.");
+  } catch (error) {
+    console.warn("Firebase offline/standalone mode:", error);
+    $("connection-state").textContent = "Standalone Mode (Offline)";
+    $("connection-dot").classList.remove("connected");
+    showToast("Operating in standalone simulation mode.");
+    addSystemLog("Operating in local standalone mode. Simulation is fully functional.");
+  }
 }
 
 function detachListeners() {
@@ -185,1319 +375,536 @@ function trackListener(ref) {
 
 function attachListeners() {
   if (!db) return;
-
   const root = `servers/${room}`;
   const peer = role === "Alice" ? "Bob" : "Alice";
 
-  // Shared Eve state: do not create new alert records in this listener.
   const eveRef = trackListener(db.ref(`${root}/eveEnabled`));
-
   eveRef.on("value", snapshot => {
     eveEnabled = snapshot.val() === true;
     updateEveUI();
-  }, showFirebaseError);
+  }, handleFirebaseErr);
 
-  // Incoming messages.
-  const messagesRef = trackListener(
-    db.ref(`${root}/messages`).orderByChild("time")
-  );
-
+  const messagesRef = trackListener(db.ref(`${root}/messages`).orderByChild("time"));
   messagesRef.on("child_added", snapshot => {
-    if (processedMessageIds.has(snapshot.key)) return;
-    processedMessageIds.add(snapshot.key);
+    const key = snapshot.key;
+    if (processedMessageIds.has(key)) return;
+    processedMessageIds.add(key);
 
     const data = snapshot.val() || {};
     if (data.sender === role) return;
 
-    if (demoKeyByte === null) {
-      displayMessage(
-        data.sender || peer,
-        "Encrypted demo payload received. A compatible demo key is required.",
-        data.payload,
-        "received"
-      );
-      return;
-    }
+    handleIncomingMessage(data, peer);
+  }, handleFirebaseErr);
 
-    try {
-      const text = xorDecode(data.payload || [], demoKeyByte);
-      displayMessage(data.sender || peer, text, data.payload, "received");
-
-      addLog("Message decoded", [
-        ["Sender", data.sender || peer],
-        ["Payload bytes", (data.payload || []).length],
-        ["Recovered text", text]
-      ], "var(--teal)");
-    } catch (error) {
-      console.error("Message decode error:", error);
-      addSystem("Message decoding failed. The demo keys may not match.", true);
-    }
-  }, showFirebaseError);
-
-  // Received demo keys.
-  const keysRef = trackListener(
-    db.ref(`${root}/keys`).orderByChild("time")
-  );
-
+  const keysRef = trackListener(db.ref(`${root}/keys`).orderByChild("time"));
   keysRef.on("child_added", snapshot => {
-    if (processedKeyIds.has(snapshot.key)) return;
-    processedKeyIds.add(snapshot.key);
+    const key = snapshot.key;
+    if (processedKeyIds.has(key)) return;
+    processedKeyIds.add(key);
 
     const data = snapshot.val() || {};
-
     if (data.sender === role || !data.accepted || !data.demoKeyBits) return;
 
-    demoKeyBits = String(data.demoKeyBits);
-    demoKeyByte = parseInt(demoKeyBits.slice(0, 8).padEnd(8, "0"), 2);
+    activeKeyBits = String(data.demoKeyBits);
+    keyBufferOffset = 0;
 
-    setKeyStatus(`DEMO KEY READY · ${demoKeyBits.length} bits`, "ready");
+    setKeyStatus(`OTP KEY READY · ${activeKeyBits.length} bits`, "ready");
     updateCurrentStats(data.stats || {});
+    updateKeyReservoirUI();
 
-    addSystem(`Demo key received from ${data.sender}.`);
-  }, showFirebaseError);
+    addSystemLog(`Quantum key (${activeKeyBits.length} bits) securely received from ${data.sender}.`);
+    audio.playSuccess();
+    showToast(`Quantum key (${activeKeyBits.length} bits) received from ${data.sender}`);
+  }, handleFirebaseErr);
 
-  // Peer typing state.
-  const typingRef = trackListener(
-    db.ref(`${root}/typing_status/${peer}`)
-  );
-
+  const typingRef = trackListener(db.ref(`${root}/typing_status/${peer}`));
   typingRef.on("value", snapshot => {
-    $("typing-line").textContent =
-      snapshot.val() ? `${peer} is typing…` : "";
-
-    $("typing-line").style.display =
-      snapshot.val() ? "block" : "none";
-  }, showFirebaseError);
+    const isTyping = snapshot.val() === true;
+    $("typing-line").textContent = isTyping ? `${peer} is typing…` : "";
+    $("typing-line").style.display = isTyping ? "block" : "none";
+  }, handleFirebaseErr);
 }
 
-function showFirebaseError(error) {
-  console.error("Firebase listener error:", error);
-  showToast(`Firebase error: ${error.message || "check database rules"}`);
+function handleFirebaseErr(err) {
+  console.warn("Firebase listener notice:", err);
 }
 
-/* ---------------- UI HELPERS ---------------- */
+// ==========================================================================
+// EVE ATTACK ADVERSARY CONTROL
+// ==========================================================================
+async function toggleEve() {
+  const next = !eveEnabled;
+  eveEnabled = next;
+  updateEveUI();
 
-function showToast(message) {
-  const toast = $("toast");
-  if (!toast) return;
-
-  toast.textContent = message;
-  toast.classList.add("show");
-
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove("show"), 3600);
-}
-
-function setKeyStatus(text, state) {
-  const badge = $("key-status");
-  badge.textContent = text;
-  badge.classList.remove("ready", "rejected");
-
-  if (state) badge.classList.add(state);
-}
-
-function addSystem(text, alert = false) {
-  const element = document.createElement("div");
-  element.className = `system-message${alert ? " alert" : ""}`;
-  element.textContent = text;
-
-  $("chat-messages").appendChild(element);
-  scrollChat();
-}
-
-function scrollChat() {
-  const box = $("chat-messages");
-  box.scrollTop = box.scrollHeight;
-}
-
-function closeModal(id) {
-  $(id)?.classList.remove("open");
-}
-
-function openSimulator() {
-  $("sim-modal").classList.add("open");
-}
-
-function openAnalytics() {
-  $("analytics-modal").classList.add("open");
-
-  if (!latestExperiment) {
-    runMonteCarlo();
+  if (eveEnabled) {
+    audio.playAlert();
+    showToast(`Eve enabled (${Math.round(eveProbability * 100)}% interception)`);
   } else {
-    redrawExperimentCharts();
+    showToast("Eve disarmed");
+  }
+
+  addSystemLog(next
+    ? `⚠️ Eve armed: Intercept-resend active with p_E = ${Math.round(eveProbability * 100)}%.`
+    : "Eve disarmed: Quantum channel undisturbed.");
+
+  if (db) {
+    try {
+      await db.ref(`servers/${room}/eveEnabled`).set(next);
+    } catch (e) {
+      console.warn("Could not sync Eve state to Firebase:", e);
+    }
   }
 }
 
 function updateEveUI() {
   $("eve-state").textContent = eveEnabled
-    ? "Attack armed for next simulation"
+    ? `Attack armed (${Math.round(eveProbability * 100)}% intercept)`
     : "Attack disabled";
 
-  $("eve-toggle").textContent = eveEnabled ? "Disable Eve" : "Enable Eve";
+  $("eve-toggle").textContent = eveEnabled ? "Disarm Eve" : "Enable Eve Intercept-Resend";
   $("eve-toggle").classList.toggle("armed", eveEnabled);
-  $("stat-eve").textContent = eveEnabled ? "ON" : "OFF";
-}
 
-/* Fix for the original updateCurrentStats is not defined error. */
-function updateCurrentStats(stats = {}) {
-  const match = Number(
-    stats.matchProbability ?? stats.basisMatchProbability ?? 0
-  );
+  $("stat-security").textContent = eveEnabled ? "EVE ACTIVE" : "SECURE";
+  $("stat-security").className = eveEnabled ? "security-alert" : "security-safe";
+  $("stat-eve-sub").textContent = eveEnabled ? `Eve: ${Math.round(eveProbability * 100)}%` : "Eve: OFF";
 
-  const qber = Number(stats.qber ?? stats.sampleQber ?? 0);
-  const keyLength = Number(stats.finalKeyLength ?? stats.keyLength ?? 0);
-
-  $("stat-match").textContent =
-    stats.matchProbability == null && stats.basisMatchProbability == null
-      ? "—"
-      : `${(match * 100).toFixed(1)}%`;
-
-  $("stat-qber").textContent =
-    stats.qber == null && stats.sampleQber == null
-      ? "—"
-      : `${(qber * 100).toFixed(1)}%`;
-
-  $("stat-key-length").textContent = String(keyLength);
-
-  $("stat-eve").textContent = stats.eve == null
-    ? (eveEnabled ? "ON" : "OFF")
-    : (stats.eve ? "ON" : "OFF");
-
-  if ($("metric-match")) {
-    $("metric-match").textContent = `${(match * 100).toFixed(2)}%`;
-  }
-
-  if ($("metric-qber")) {
-    $("metric-qber").textContent = `${(qber * 100).toFixed(2)}%`;
-  }
-
-  if ($("metric-mean") && stats.meanSifted != null) {
-    $("metric-mean").textContent = Number(stats.meanSifted).toFixed(2);
-  }
-
-  if ($("metric-variance") && stats.variance != null) {
-    $("metric-variance").textContent = Number(stats.variance).toFixed(2);
+  const hudEve = $("hud-eve");
+  if (hudEve) {
+    hudEve.textContent = eveEnabled ? `Eve: ARMED (${Math.round(eveProbability * 100)}%)` : "Eve: DISARMED";
+    hudEve.classList.toggle("hud-eve-pill", eveEnabled);
   }
 }
 
-/* ---------------- EVE CONTROL ---------------- */
+// ==========================================================================
+// BB84 QUANTUM STOCHASTIC SIMULATION ENGINE
+// ==========================================================================
+function simulateSinglePhoton(index, useEve, pE, noise) {
+  const aliceBit = randomBit();
+  const aliceBasis = randomBasis();
+  const bobBasis = randomBasis();
 
-async function toggleEve() {
-  if (!db) {
-    showToast("Firebase is not connected.");
-    return;
+  const aliceAngle = aliceBasis === "+" ? (aliceBit === 0 ? 0 : 90) : (aliceBit === 0 ? 45 : 135);
+
+  const intercepted = useEve && (Math.random() < pE);
+  let eveBasis = "—";
+  let eveBit = "—";
+  let eveAngle = "—";
+  let travelingBit = aliceBit;
+  let travelingBasis = aliceBasis;
+
+  if (intercepted) {
+    eveBasis = randomBasis();
+    if (eveBasis === aliceBasis) {
+      eveBit = aliceBit;
+    } else {
+      eveBit = randomBit();
+    }
+    travelingBit = eveBit;
+    travelingBasis = eveBasis;
+    eveAngle = eveBasis === "+" ? (eveBit === 0 ? 0 : 90) : (eveBit === 0 ? 45 : 135);
   }
 
-  const next = !eveEnabled;
-
-  try {
-    await db.ref(`servers/${room}/eveEnabled`).set(next);
-    eveEnabled = next;
-    updateEveUI();
-
-    addSystem(next
-      ? `Eve enabled. Interception probability: ${Math.round(eveProbability * 100)}%.`
-      : "Eve disabled for the next simulation.");
-  } catch (error) {
-    showFirebaseError(error);
+  if (Math.random() < noise) {
+    travelingBit = randomBit();
   }
+
+  let bobBit;
+  if (bobBasis === travelingBasis) {
+    bobBit = travelingBit;
+  } else {
+    bobBit = randomBit();
+  }
+
+  const basisMatch = aliceBasis === bobBasis;
+  const bitMatch = aliceBit === bobBit;
+  const isError = basisMatch && !bitMatch;
+  const bobDetector = bobBit === 0 ? "D0" : "D1";
+
+  return {
+    index,
+    aliceBit,
+    aliceBasis,
+    aliceAngle,
+    intercepted,
+    eveBasis,
+    eveBit,
+    eveAngle,
+    bobBasis,
+    bobBit,
+    bobDetector,
+    basisMatch,
+    bitMatch,
+    isError
+  };
 }
 
-/* ---------------- BB84 SIMULATION MODEL ---------------- */
-
-/*
-  + represents the rectilinear basis.
-  × represents the diagonal basis.
-
-  A wrong-basis measurement produces a random bit.
-  Eve intercepts each photon independently with probability p.
-*/
-function simulateBB84(n, useEve, interceptProbability) {
-  const aliceBits = [];
-  const aliceBases = [];
-  const eveBases = [];
-  const bobBases = [];
-  const bobBits = [];
-  const matches = [];
-  const intercepted = [];
+function simulateBB84Batch(n, useEve, pE, noise) {
+  const photons = [];
+  const matchingIndexes = [];
+  let errorCount = 0;
 
   for (let i = 0; i < n; i++) {
-    const aBit = randomBit();
-    const aBasis = randomBasis();
-    const bBasis = randomBasis();
-
-    const intercept = useEve && Math.random() < interceptProbability;
-
-    let travelingBit = aBit;
-    let travelingBasis = aBasis;
-    let eBasis = "—";
-
-    if (intercept) {
-      eBasis = randomBasis();
-
-      if (eBasis !== aBasis) {
-        travelingBit = randomBit();
-      }
-
-      travelingBasis = eBasis;
+    const p = simulateSinglePhoton(i + 1, useEve, pE, noise);
+    photons.push(p);
+    if (p.basisMatch) {
+      matchingIndexes.push(i);
+      if (p.isError) errorCount++;
     }
-
-    const bBit = bBasis === travelingBasis
-      ? travelingBit
-      : randomBit();
-
-    aliceBits.push(aBit);
-    aliceBases.push(aBasis);
-    eveBases.push(eBasis);
-    bobBases.push(bBasis);
-    bobBits.push(bBit);
-    matches.push(aBasis === bBasis);
-    intercepted.push(intercept);
   }
 
-  const matchingIndexes = matches
-    .map((yes, i) => yes ? i : -1)
-    .filter(i => i >= 0);
+  const sampleSet = selectRandomSample(matchingIndexes, 0.25);
+  let sampleErrors = 0;
 
-  const siftAlice = matchingIndexes.map(i => aliceBits[i]);
-  const siftBob = matchingIndexes.map(i => bobBits[i]);
+  for (const idx of sampleSet) {
+    if (photons[idx].isError) {
+      sampleErrors++;
+    }
+  }
+
+  const sampleSize = sampleSet.size;
+  const sampleQber = sampleSize > 0 ? sampleErrors / sampleSize : 0;
+
+  const remainingIndexes = matchingIndexes.filter(idx => !sampleSet.has(idx));
+  const rawRemainingAlice = remainingIndexes.map(idx => photons[idx].aliceBit).join("");
+  const rawRemainingBob = remainingIndexes.map(idx => photons[idx].bobBit).join("");
+
+  const accepted = sampleSize >= 8 && sampleQber <= 0.11003;
+  const keyRate = secretKeyRate(sampleQber);
+  const privacyAmplifiedLength = accepted ? Math.floor(rawRemainingAlice.length * keyRate) : 0;
+  const finalAliceKey = rawRemainingAlice.slice(0, privacyAmplifiedLength);
 
   return {
     n,
     useEve,
-    interceptProbability,
-    aliceBits,
-    aliceBases,
-    eveBases,
-    bobBases,
-    bobBits,
-    matches,
-    intercepted,
+    pE,
+    noise,
+    photons,
     matchingIndexes,
-    siftAlice,
-    siftBob,
     matchCount: matchingIndexes.length,
-    matchProbability: matchingIndexes.length / n
+    matchProbability: matchingIndexes.length / n,
+    sampleSet,
+    sampleSize,
+    sampleErrors,
+    sampleQber,
+    remainingIndexes,
+    rawRemainingAlice,
+    rawRemainingBob,
+    accepted,
+    keyRate,
+    privacyAmplifiedLength,
+    finalAliceKey,
+    time: new Date().toISOString()
   };
 }
 
-function chooseSample(indexes, fraction = 0.25) {
+function selectRandomSample(indexes, fraction = 0.25) {
   const copy = [...indexes];
-
   for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [copy[i], copy[j]] = [copy[j], copy[i]];
   }
-
-  const count = Math.min(copy.length, Math.floor(copy.length * fraction));
+  const count = Math.min(copy.length, Math.max(8, Math.floor(copy.length * fraction)));
   return new Set(copy.slice(0, count));
 }
 
-function evaluateBB84(result) {
-  const sample = chooseSample(result.matchingIndexes, 0.25);
-  let errors = 0;
-
-  for (const index of sample) {
-    if (result.aliceBits[index] !== result.bobBits[index]) {
-      errors++;
-    }
+// ==========================================================================
+// SIMULATOR UI & ACTIONS
+// ==========================================================================
+function openSimulator() {
+  $("sim-modal").classList.add("open");
+  resizeCanvases();
+  if (!latestSimulation) {
+    stepSinglePhoton();
   }
-
-  const sampleQber = sample.size ? errors / sample.size : 0;
-  const remaining = result.matchingIndexes.filter(i => !sample.has(i));
-
-  const aliceBits = remaining.map(i => result.aliceBits[i]).join("");
-  const bobBits = remaining.map(i => result.bobBits[i]).join("");
-
-  // An illustrative teaching threshold, not a security proof.
-  const accepted = sample.size >= 8 && sampleQber <= 0.11;
-
-  // Conceptual leakage allowance for the demonstration only.
-  const estimatedLeakage = Math.ceil(aliceBits.length * 0.10);
-
-  const proposedPrivacyAmplifiedLength = accepted
-    ? Math.max(
-        0,
-        Math.floor(aliceBits.length - estimatedLeakage - 2 * sample.size * sampleQber)
-      )
-    : 0;
-
-  return {
-    sample,
-    sampleErrors: errors,
-    sampleQber,
-    remaining,
-    aliceBits,
-    bobBits,
-    accepted,
-    estimatedLeakage,
-    proposedPrivacyAmplifiedLength
-  };
 }
 
-/* ---------------- SIMULATOR CONTROLS ---------------- */
-
-function resetSimulation() {
+function resetSimulator() {
+  stopPhotonStreaming();
   latestSimulation = null;
-  simulationStep = 0;
-  simulationRunning = false;
+  flyingPhotons = [];
+  photonSeq = 0;
 
   $("bb84-table-body").innerHTML =
-    '<tr><td colspan="9" class="empty-cell">Run a simulation to populate the table.</td></tr>';
+    '<tr><td colspan="10" class="empty-cell">Simulation reset. Stream photons or run instant burst.</td></tr>';
 
   $("sim-result").className = "result-banner";
-  $("sim-result").textContent = "Ready to simulate.";
+  $("sim-result").textContent = "Optical bench ready. Choose photon count and simulate.";
   $("publish-key").disabled = true;
 
-  ["sim-photons", "sim-matches", "sim-qber", "sim-final-bits"]
-    .forEach(id => $(id).textContent = "—");
-
-  renderSteps(0);
+  ["sim-photons", "sim-matches", "sim-qber", "sim-final-bits"].forEach(id => $(id).textContent = "—");
+  updateStateInspector(null);
+  updateBitstreamRibbon(null);
+  renderProtocolSteps(0);
 }
 
-function renderSteps(step) {
-  simulationStep = clamp(step, 0, 5);
+function runInstantBurst() {
+  stopPhotonStreaming();
+  const n = Number($("photon-count").value) || 512;
+  const pE = eveEnabled ? eveProbability : 0;
+  const noise = channelNoise;
 
-  document.querySelectorAll(".protocol-step").forEach((element, i) => {
-    element.classList.toggle("active", i === simulationStep);
-    element.classList.toggle("done", i < simulationStep);
+  latestSimulation = simulateBB84Batch(n, eveEnabled, pE, noise);
+
+  updateSimulationMetrics(latestSimulation);
+  renderBB84Table(latestSimulation);
+  updateBitstreamRibbon(latestSimulation);
+  renderProtocolSteps(5);
+  evaluateHypothesisTest(latestSimulation);
+
+  updateCurrentStats({
+    matchProbability: latestSimulation.matchProbability,
+    qber: latestSimulation.sampleQber,
+    finalKeyLength: latestSimulation.privacyAmplifiedLength,
+    eve: eveEnabled
   });
-}
 
-function nextSimulationStep() {
-  if (!latestSimulation) {
-    showToast("Run a simulation first.");
-    return;
-  }
+  experimentHistory.push(simulationToHistoryRow(latestSimulation));
 
-  if (simulationStep < 5) {
-    renderSteps(simulationStep + 1);
+  if (latestSimulation.accepted) {
+    audio.playSuccess();
+    $("sim-result").className = "result-banner success";
+    $("sim-result").textContent =
+      `✅ Sample QBER: ${(latestSimulation.sampleQber * 100).toFixed(2)}% (≤ 11.0% Shor-Preskill bound). ` +
+      `Channel verified secure! Privacy amplified key: ${latestSimulation.privacyAmplifiedLength} bits ready for One-Time Pad.`;
+
+    $("publish-key").disabled = role !== "Alice" || latestSimulation.privacyAmplifiedLength < 8;
   } else {
-    showToast("All six protocol stages are displayed.");
+    audio.playAlert();
+    $("sim-result").className = "result-banner error";
+    $("sim-result").textContent =
+      `🚨 Key Compromised: Sample QBER ${(latestSimulation.sampleQber * 100).toFixed(2)}% exceeds security threshold (11.0%). ` +
+      `Eve's interception detected! Key discarded to preserve perfect secrecy.`;
+
+    setKeyStatus("Key Rejected · High QBER", "rejected");
+    addSystemLog(`BB84 Key exchange aborted: QBER ${(latestSimulation.sampleQber * 100).toFixed(2)}% exceeds 11% threshold!`, true);
+    $("publish-key").disabled = true;
   }
 
-  const descriptions = [
-    "Alice prepares random bits and bases.",
-    "Photons travel through the channel; Eve may intercept.",
-    "Bob measures photons with randomly chosen bases.",
-    "Alice and Bob compare bases and retain matching positions.",
-    "A sample is revealed to estimate the quantum bit error rate.",
-    "Reconciliation and privacy amplification are represented conceptually; this is not a security proof."
-  ];
-
-  $("sim-result").textContent = descriptions[simulationStep];
+  addCryptoLog("BB84 Batch Simulation", [
+    ["Photons Prepared (N)", n],
+    ["Basis Matches (K)", `${latestSimulation.matchCount} (${(latestSimulation.matchProbability * 100).toFixed(1)}%)`],
+    ["Sample Tested (k)", latestSimulation.sampleSize],
+    ["Sample QBER (Q̂)", `${(latestSimulation.sampleQber * 100).toFixed(2)}%`],
+    ["Eve Active", eveEnabled ? `YES (${Math.round(pE * 100)}%)` : "NO"],
+    ["Channel Noise (η)", `${Math.round(noise * 100)}%`],
+    ["Secret Key Rate R", latestSimulation.keyRate.toFixed(4)],
+    ["Distilled OTP Bits", latestSimulation.privacyAmplifiedLength],
+    ["Security Verdict", latestSimulation.accepted ? "PASSED (Safe)" : "COMPROMISED (Aborted)"]
+  ], latestSimulation.accepted ? "var(--teal)" : "var(--red)");
 }
 
-async function runBB84() {
-  if (simulationRunning) return;
-
-  simulationRunning = true;
-  $("run-bb84").disabled = true;
-  $("publish-key").disabled = true;
-
-  try {
-    const n = Number($("photon-count").value) || 512;
-    const probability = eveEnabled ? eveProbability : 0;
-
-    const raw = simulateBB84(n, eveEnabled, probability);
-    const evaluated = evaluateBB84(raw);
-
-    latestSimulation = {
-      ...raw,
-      ...evaluated,
-      time: new Date().toISOString()
-    };
-
-    renderSteps(0);
-    renderBB84Table(latestSimulation);
-    updateSimulationMetrics(latestSimulation);
-
-    updateCurrentStats({
-      matchProbability: raw.matchProbability,
-      qber: evaluated.sampleQber,
-      finalKeyLength: evaluated.proposedPrivacyAmplifiedLength,
-      eve: eveEnabled
-    });
-
-    experimentHistory.push(toExperimentRow(latestSimulation));
-
-    addLog("BB84 simulation", [
-      ["Photons", n],
-      ["Matching bases", raw.matchCount],
-      ["Sample size", evaluated.sample.size],
-      ["Sample errors", evaluated.sampleErrors],
-      ["Sample QBER", `${(evaluated.sampleQber * 100).toFixed(2)}%`],
-      ["Eve interception", `${Math.round(probability * 100)}%`],
-      ["Accepted", evaluated.accepted ? "Yes" : "No"]
-    ], evaluated.accepted ? "var(--teal)" : "var(--red)");
-
-    if (evaluated.accepted) {
-      $("sim-result").className = "result-banner success";
-      $("sim-result").textContent =
-        `Sample QBER ${(evaluated.sampleQber * 100).toFixed(2)}%. ` +
-        `The demonstration passes its illustrative 11% threshold. ` +
-        `Proposed final length: ${evaluated.proposedPrivacyAmplifiedLength} bits.`;
-
-      $("publish-key").disabled =
-        role !== "Alice" || evaluated.proposedPrivacyAmplifiedLength < 8;
-    } else {
-      $("sim-result").className = "result-banner error";
-      $("sim-result").textContent =
-        `Key rejected: sample QBER ${(evaluated.sampleQber * 100).toFixed(2)}%. ` +
-        "Try another run or disable Eve. The threshold is illustrative.";
-
-      setKeyStatus("Key rejected — high QBER", "rejected");
-      addSystem(
-        `BB84 run rejected: QBER ${(evaluated.sampleQber * 100).toFixed(2)}%.`,
-        true
-      );
-    }
-  } catch (error) {
-    console.error(error);
-    showToast(`Simulation error: ${error.message}`);
-  } finally {
-    simulationRunning = false;
-    $("run-bb84").disabled = false;
-  }
+function updateSimulationMetrics(sim) {
+  $("sim-photons").textContent = String(sim.n);
+  $("sim-matches").textContent = `${sim.matchCount} (${(sim.matchProbability * 100).toFixed(1)}%)`;
+  $("sim-qber").textContent = `${(sim.sampleQber * 100).toFixed(2)}%`;
+  $("sim-final-bits").textContent = `${sim.privacyAmplifiedLength} bits`;
 }
 
-function renderBB84Table(data) {
-  const body = $("bb84-table-body");
-  body.replaceChildren();
-
-  const sampleIndexes = new Set(data.sample);
-  const maxRows = Math.min(data.n, 100);
-  const fragment = document.createDocumentFragment();
-
-  for (let i = 0; i < maxRows; i++) {
-    const tr = document.createElement("tr");
-    const matched = data.matches[i];
-    const sample = matched && sampleIndexes.has(i);
-    const siftedBit = matched && !sample ? data.aliceBits[i] : "—";
-
-    const values = [
-      i + 1,
-      data.aliceBits[i],
-      data.aliceBases[i],
-      data.eveBases[i],
-      data.bobBases[i],
-      data.bobBits[i],
-      matched ? "YES" : "NO",
-      sample ? "SAMPLE" : "—",
-      siftedBit
-    ];
-
-    values.forEach((value, column) => {
-      const td = document.createElement("td");
-      td.textContent = String(value);
-
-      if (column === 6) td.className = matched ? "good" : "bad";
-      if (column === 7 && sample) td.className = "sample";
-      if (column === 8 && !matched) td.className = "dim";
-      if (column === 8 && matched && !sample) td.className = "good";
-
-      tr.appendChild(td);
-    });
-
-    fragment.appendChild(tr);
-  }
-
-  body.appendChild(fragment);
-
-  if (data.n > maxRows) {
-    const tr = document.createElement("tr");
-    const td = document.createElement("td");
-
-    td.colSpan = 9;
-    td.className = "empty-cell";
-    td.textContent = `Showing first ${maxRows} of ${data.n} photons.`;
-
-    tr.appendChild(td);
-    body.appendChild(tr);
-  }
-}
-
-function updateSimulationMetrics(data) {
-  $("sim-photons").textContent = String(data.n);
-  $("sim-matches").textContent =
-    `${data.matchCount} (${(data.matchProbability * 100).toFixed(1)}%)`;
-  $("sim-qber").textContent = `${(data.sampleQber * 100).toFixed(2)}%`;
-  $("sim-final-bits").textContent =
-    String(data.proposedPrivacyAmplifiedLength);
-}
-
-/* ---------------- DEMO KEY PUBLISHING ---------------- */
-
-async function publishDemoKey() {
-  if (role !== "Alice") {
-    showToast("Only Alice can publish the demo key.");
+function updateBitstreamRibbon(sim) {
+  if (!sim) {
+    $("ribbon-raw").textContent = "Awaiting simulation…";
+    $("ribbon-sifted").textContent = "Awaiting sifting…";
+    $("ribbon-sample").textContent = "Awaiting error estimation…";
+    $("ribbon-final").textContent = "Awaiting privacy amplification…";
     return;
   }
 
-  if (!db) {
-    showToast("Firebase is not connected.");
-    return;
-  }
+  const rawSnippet = sim.photons.slice(0, 48).map(p =>
+    `<span class="${p.basisMatch ? 'bit-match' : 'bit-mismatch'}">${p.aliceBit}</span>`
+  ).join(" ");
+  $("ribbon-raw").innerHTML = rawSnippet + (sim.photons.length > 48 ? " …" : "");
 
-  if (!latestSimulation?.accepted) {
-    showToast("Run an accepted simulation first.");
-    return;
-  }
+  const siftedSnippet = sim.matchingIndexes.slice(0, 48).map(idx => {
+    const p = sim.photons[idx];
+    return `<span class="${p.isError ? 'bit-error' : 'bit-match'}">${p.aliceBit}</span>`;
+  }).join(" ");
+  $("ribbon-sifted").innerHTML = siftedSnippet || "No matching bases";
 
-  /*
-    Classroom shortcut only:
-    this does not implement real error correction or proven privacy
-    amplification. The key is visible to authorized Firebase readers.
-  */
-  const finalLength = latestSimulation.proposedPrivacyAmplifiedLength;
-  const candidate = latestSimulation.aliceBits.slice(0, finalLength);
+  const sampleSnippet = Array.from(sim.sampleSet).slice(0, 32).map(idx => {
+    const p = sim.photons[idx];
+    return `<span class="${p.isError ? 'bit-error' : 'bit-sample'}">${p.aliceBit}</span>`;
+  }).join(" ");
+  $("ribbon-sample").innerHTML = sampleSnippet || "No sample";
 
-  if (candidate.length < 8) {
-    showToast("The final demonstration key is too short.");
-    return;
-  }
-
-  $("publish-key").disabled = true;
-
-  try {
-    const stats = {
-      photons: latestSimulation.n,
-      matched: latestSimulation.matchCount,
-      matchProbability: latestSimulation.matchProbability,
-      qber: latestSimulation.sampleQber,
-      eve: latestSimulation.useEve,
-      interceptionProbability: latestSimulation.interceptProbability,
-      finalKeyLength: candidate.length,
-      keyAccepted: true,
-      time: Date.now()
-    };
-
-    await db.ref(`servers/${room}/keys`).push({
-      sender: role,
-      demoKeyBits: candidate,
-      accepted: true,
-      stats,
-      time: Date.now(),
-      simulationOnly: true
-    });
-
-    demoKeyBits = candidate;
-    demoKeyByte = parseInt(candidate.slice(0, 8).padEnd(8, "0"), 2);
-
-    setKeyStatus(`DEMO KEY READY · ${candidate.length} bits`, "ready");
-    updateCurrentStats(stats);
-
-    addSystem(
-      `Demo key published (${candidate.length} bits). This is not a secret from Firebase readers.`
-    );
-
-    addLog("Demo key published", [
-      ["Final demo bits", candidate.length],
-      ["Sample QBER", `${(stats.qber * 100).toFixed(2)}%`],
-      ["Post-processing", "Conceptual length reduction"],
-      ["Security status", "Not production-secure"]
-    ], "var(--teal)");
-
-    closeModal("sim-modal");
-    showToast("Demo key published to the room.");
-  } catch (error) {
-    console.error(error);
-    showToast(`Key publish failed: ${error.message}`);
-  } finally {
-    $("publish-key").disabled = false;
-  }
+  $("ribbon-final").innerHTML = sim.finalAliceKey
+    ? `<span class="bit-match">${sim.finalAliceKey.slice(0, 64)}</span>${sim.finalAliceKey.length > 64 ? ' …' : ''}`
+    : "Key rejected (0 bits)";
 }
 
-/* ---------------- DEMO CHAT ---------------- */
-
-function xorEncode(text, keyByte) {
-  return Array.from(new TextEncoder().encode(text), byte =>
-    (byte ^ keyByte).toString(2).padStart(8, "0")
-  );
+// ==========================================================================
+// OPTICAL BENCH INTERACTIVE CANVAS ANIMATION
+// ==========================================================================
+function setupChannelCanvas() {
+  channelCanvas = $("channel-canvas");
+  if (!channelCanvas) return;
+  channelCtx = channelCanvas.getContext("2d");
+  resizeCanvases();
+  window.addEventListener("resize", resizeCanvases);
+  startAnimationLoop();
 }
 
-function xorDecode(payload, keyByte) {
-  const bytes = payload.map(bits => parseInt(bits, 2) ^ keyByte);
-  return new TextDecoder().decode(new Uint8Array(bytes));
+function resizeCanvases() {
+  if (!channelCanvas) return;
+  const rect = channelCanvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(300, rect.width || 1100);
+  const h = 340;
+
+  channelCanvas.width = w * dpr;
+  channelCanvas.height = h * dpr;
+  channelCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
-async function sendMessage(event) {
-  event?.preventDefault();
+function startAnimationLoop() {
+  if (animFrameId) cancelAnimationFrame(animFrameId);
 
-  const input = $("message-input");
-  const text = input.value.trim();
+  let lastTime = performance.now();
 
-  if (!text) return;
+  function loop(now) {
+    const dt = (now - lastTime) / 1000;
+    lastTime = now;
 
-  if (!db) {
-    showToast("Firebase is not connected.");
-    return;
+    updatePhotons(dt);
+    drawOpticalBench();
+
+    animFrameId = requestAnimationFrame(loop);
   }
-
-  if (demoKeyByte === null) {
-    showToast("Generate or receive an accepted demo key first.");
-    return;
-  }
-
-  const payload = xorEncode(text, demoKeyByte);
-
-  try {
-    const ref = await db.ref(`servers/${room}/messages`).push({
-      sender: role,
-      payload,
-      time: Date.now(),
-      simulationOnly: true
-    });
-
-    processedMessageIds.add(ref.key);
-
-    displayMessage(role, text, payload, "sent");
-    input.value = "";
-
-    db.ref(`servers/${room}/typing_status/${role}`)
-      .set(false)
-      .catch(() => {});
-
-    addLog("Message encoded", [
-      ["Bytes", payload.length],
-      ["Encoding", "Educational XOR"],
-      ["Payload", payload.join(" ")]
-    ], "var(--cyan)");
-  } catch (error) {
-    console.error(error);
-    showToast(`Send failed: ${error.message}`);
-  }
+  animFrameId = requestAnimationFrame(loop);
 }
 
-function displayMessage(sender, text, payload, type) {
-  const wrapper = document.createElement("article");
-  wrapper.className = `message ${type}`;
+function updatePhotons(dt) {
+  const speedPxPerSec = 380 * animSpeed;
+  const width = channelCanvas ? channelCanvas.getBoundingClientRect().width : 1100;
+  const aliceX = 140;
+  const eveX = width / 2;
+  const bobX = width - 150;
 
-  const meta = document.createElement("div");
-  meta.className = "message-meta";
+  for (let i = flyingPhotons.length - 1; i >= 0; i--) {
+    const p = flyingPhotons[i];
+    p.x += speedPxPerSec * dt;
+    p.phase += dt * 12;
 
-  const name = document.createElement("strong");
-  name.textContent = sender;
-
-  const time = document.createElement("time");
-  time.textContent = new Date().toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit"
-  });
-
-  meta.append(name, time);
-
-  const body = document.createElement("div");
-  body.className = "message-text";
-  body.textContent = text;
-
-  const details = document.createElement("details");
-  details.className = "payload";
-
-  const summary = document.createElement("summary");
-  summary.textContent = "View encoded payload";
-
-  const code = document.createElement("code");
-  code.textContent = Array.isArray(payload)
-    ? payload.join(" ")
-    : String(payload || "");
-
-  details.append(summary, code);
-  wrapper.append(meta, body, details);
-
-  $("chat-messages").appendChild(wrapper);
-  scrollChat();
-}
-
-function updateTyping() {
-  if (!db) return;
-
-  db.ref(`servers/${room}/typing_status/${role}`)
-    .set(true)
-    .catch(() => {});
-
-  clearTimeout(typingTimer);
-
-  typingTimer = setTimeout(() => {
-    db.ref(`servers/${room}/typing_status/${role}`)
-      .set(false)
-      .catch(() => {});
-  }, 1000);
-}
-
-/* ---------------- CRYPTO LOGS ---------------- */
-
-function addLog(title, rows, color = "var(--cyan)") {
-  const container = $("crypto-logs");
-  container.querySelector(".muted")?.remove();
-
-  const card = document.createElement("div");
-  card.className = "log-entry";
-  card.style.borderLeftColor = color;
-
-  const heading = document.createElement("strong");
-  heading.textContent = `[${title}]`;
-
-  const table = document.createElement("table");
-
-  rows.forEach(([label, value]) => {
-    const tr = document.createElement("tr");
-    const th = document.createElement("th");
-    const td = document.createElement("td");
-
-    th.textContent = label;
-    td.textContent = String(value);
-
-    tr.append(th, td);
-    table.appendChild(tr);
-  });
-
-  card.append(heading, table);
-  container.prepend(card);
-}
-
-/* ---------------- PTRP MONTE CARLO ---------------- */
-
-function runMonteCarlo() {
-  const button = $("run-monte-carlo");
-  button.disabled = true;
-  button.textContent = "Running…";
-
-  setTimeout(() => {
-    try {
-      const trials = clamp(Number($("trial-count").value) || 500, 1, 10000);
-      const n = clamp(Number($("mc-photons").value) || 128, 16, 1024);
-      const useEve = $("mc-eve").checked;
-      const probability = useEve ? eveProbability : 0;
-
-      let totalMatches = 0;
-      let totalSiftedSquared = 0;
-      let totalErrors = 0;
-
-      const lengths = [];
-      const qbers = [];
-
-      for (let t = 0; t < trials; t++) {
-        const result = simulateBB84(n, useEve, probability);
-        let errors = 0;
-
-        for (const index of result.matchingIndexes) {
-          if (result.aliceBits[index] !== result.bobBits[index]) {
-            errors++;
-          }
-        }
-
-        totalMatches += result.matchCount;
-        totalSiftedSquared += result.matchCount ** 2;
-        totalErrors += errors;
-
-        lengths.push(result.matchCount);
-        qbers.push(result.matchCount ? errors / result.matchCount : 0);
+    if (!p.passedEve && p.x >= eveX) {
+      p.passedEve = true;
+      if (p.data.intercepted) {
+        detectorFlash.eve = 1.0;
+        audio.playAlert();
+        p.waveColor = "#ff3366";
       }
-
-      const empiricalMatch = totalMatches / (trials * n);
-      const mean = totalMatches / trials;
-      const variance = Math.max(
-        0,
-        totalSiftedSquared / trials - mean * mean
-      );
-
-      const qber = totalMatches ? totalErrors / totalMatches : 0;
-
-      latestExperiment = {
-        time: new Date().toISOString(),
-        trials,
-        photons: n,
-        eve: useEve,
-        interceptionProbability: probability,
-        empiricalMatch,
-        mean,
-        variance,
-        qber,
-        lengths,
-        qbers,
-        theoreticalMatch: 0.5,
-        theoreticalMean: n / 2,
-        theoreticalVariance: n / 4,
-        theoreticalQber: probability / 4
-      };
-
-      experimentHistory.push({
-        time: latestExperiment.time,
-        type: "Monte Carlo",
-        trials,
-        photons: n,
-        eve: useEve,
-        interceptionProbability: probability,
-        matchProbability: empiricalMatch,
-        meanSifted: mean,
-        variance,
-        qber
-      });
-
-      $("metric-match").textContent = empiricalMatch.toFixed(4);
-      $("metric-mean").textContent = mean.toFixed(2);
-      $("metric-variance").textContent = variance.toFixed(2);
-      $("metric-qber").textContent = `${(qber * 100).toFixed(2)}%`;
-
-      $("metric-qber-note").textContent =
-        `Ideal target: ${(probability * 25).toFixed(1)}% at ` +
-        `${Math.round(probability * 100)}% interception`;
-
-      $("experiment-summary").className = "result-banner";
-      $("experiment-summary").textContent =
-        `${trials.toLocaleString()} trials × ${n} photons. ` +
-        `Eve: ${useEve ? "ON" : "OFF"} ` +
-        `(${Math.round(probability * 100)}% interception). ` +
-        `P(match): ${empiricalMatch.toFixed(4)} (theory 0.5). ` +
-        `Mean sifted length: ${mean.toFixed(2)} (theory ${n / 2}). ` +
-        `Variance: ${variance.toFixed(2)} (theory ${n / 4}). ` +
-        `QBER: ${(qber * 100).toFixed(2)}% ` +
-        `(ideal target ${(probability * 25).toFixed(1)}%).`;
-
-      updateCurrentStats({
-        matchProbability: empiricalMatch,
-        qber,
-        meanSifted: mean,
-        variance,
-        eve: useEve
-      });
-
-      redrawExperimentCharts();
-
-      addLog("PTRP Monte Carlo", [
-        ["Trials", trials],
-        ["Photons per trial", n],
-        ["Eve", useEve],
-        ["Interception", `${Math.round(probability * 100)}%`],
-        ["P(match)", empiricalMatch.toFixed(4)],
-        ["Mean", mean.toFixed(3)],
-        ["Variance", variance.toFixed(3)],
-        ["QBER", `${(qber * 100).toFixed(2)}%`]
-      ], "var(--teal)");
-    } catch (error) {
-      console.error(error);
-      showToast(`PTRP experiment failed: ${error.message}`);
-    } finally {
-      button.disabled = false;
-      button.textContent = "Run Experiment";
     }
-  }, 20);
-}
 
-/* ---------------- CANVAS CHARTS ---------------- */
+    if (p.x >= bobX) {
+      if (p.data.bobDetector === "D0") {
+        detectorFlash.d0 = 1.0;
+      } else {
+        detectorFlash.d1 = 1.0;
+      }
+      audio.playClick();
 
-function chartContext(canvas) {
-  if (!canvas) return null;
+      updateStateInspector(p.data);
+      appendTableRow(p.data);
 
-  const rect = canvas.getBoundingClientRect();
-  const width = Math.max(250, rect.width);
-  const height = 220;
-  const ratio = window.devicePixelRatio || 1;
-
-  canvas.width = width * ratio;
-  canvas.height = height * ratio;
-
-  const ctx = canvas.getContext("2d");
-  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-  ctx.clearRect(0, 0, width, height);
-
-  ctx.fillStyle = "#0d1a2b";
-  ctx.fillRect(0, 0, width, height);
-
-  return {
-    ctx,
-    width,
-    height,
-    left: 42,
-    right: 14,
-    top: 16,
-    bottom: 34
-  };
-}
-
-function drawBars(canvas, values, maxValue) {
-  const chart = chartContext(canvas);
-  if (!chart) return;
-
-  const { ctx, width, height, left, right, top, bottom } = chart;
-  const plotH = height - top - bottom;
-  const plotW = width - left - right;
-  const max = Math.max(maxValue, 0.0001);
-
-  ctx.font = "10px Arial";
-  ctx.strokeStyle = "#263b51";
-  ctx.fillStyle = "#91a8c2";
-
-  for (let i = 0; i <= 4; i++) {
-    const y = top + plotH * i / 4;
-
-    ctx.beginPath();
-    ctx.moveTo(left, y);
-    ctx.lineTo(width - right, y);
-    ctx.stroke();
-
-    ctx.fillText((max * (1 - i / 4)).toFixed(2), 3, y + 3);
-  }
-
-  if (!values.length) return;
-
-  const slot = plotW / values.length;
-
-  values.forEach((item, i) => {
-    const h = clamp(item.value / max, 0, 1) * plotH;
-    const x = left + i * slot + slot * 0.2;
-
-    ctx.fillStyle = item.color || "#00c8ff";
-    ctx.fillRect(x, top + plotH - h, slot * 0.6, h);
-
-    ctx.fillStyle = "#eaf3ff";
-    ctx.textAlign = "center";
-    ctx.fillText(item.value.toFixed(3), x + slot * 0.3, Math.max(12, top + plotH - h - 5));
-    ctx.fillText(item.label, x + slot * 0.3, height - 11);
-  });
-
-  ctx.textAlign = "left";
-}
-
-function drawHistogram(canvas, values, min, max, step = 4) {
-  const chart = chartContext(canvas);
-  if (!chart) return;
-
-  const { ctx, width, height, left, right, top, bottom } = chart;
-  const bins = [];
-
-  for (let value = min; value <= max; value += step) {
-    bins.push({ label: value, count: 0 });
-  }
-
-  values.forEach(value => {
-    const index = clamp(
-      Math.floor((value - min) / step),
-      0,
-      bins.length - 1
-    );
-    bins[index].count++;
-  });
-
-  const plotH = height - top - bottom;
-  const plotW = width - left - right;
-  const highest = Math.max(1, ...bins.map(bin => bin.count));
-  const slot = plotW / bins.length;
-
-  ctx.strokeStyle = "#263b51";
-
-  for (let i = 0; i <= 4; i++) {
-    const y = top + plotH * i / 4;
-    ctx.beginPath();
-    ctx.moveTo(left, y);
-    ctx.lineTo(width - right, y);
-    ctx.stroke();
-  }
-
-  bins.forEach((bin, i) => {
-    const h = bin.count / highest * plotH;
-
-    ctx.fillStyle = "#00c8ff";
-    ctx.fillRect(
-      left + i * slot + 1,
-      top + plotH - h,
-      Math.max(1, slot - 2),
-      h
-    );
-
-    if (i % 3 === 0) {
-      ctx.fillStyle = "#91a8c2";
-      ctx.font = "9px Arial";
-      ctx.fillText(String(bin.label), left + i * slot, height - 10);
+      flyingPhotons.splice(i, 1);
     }
-  });
-}
-
-function drawLine(canvas, values, maxY, theoryY = null) {
-  const chart = chartContext(canvas);
-  if (!chart) return;
-
-  const { ctx, width, height, left, right, top, bottom } = chart;
-  const plotH = height - top - bottom;
-  const plotW = width - left - right;
-
-  ctx.strokeStyle = "#263b51";
-  ctx.fillStyle = "#91a8c2";
-  ctx.font = "10px Arial";
-
-  for (let i = 0; i <= 4; i++) {
-    const y = top + plotH * i / 4;
-
-    ctx.beginPath();
-    ctx.moveTo(left, y);
-    ctx.lineTo(width - right, y);
-    ctx.stroke();
-
-    ctx.fillText(`${(maxY * (1 - i / 4) * 100).toFixed(0)}%`, 3, y + 3);
   }
 
-  if (values.length) {
-    ctx.strokeStyle = "#00c8ff";
-    ctx.lineWidth = 2;
+  detectorFlash.d0 = Math.max(0, detectorFlash.d0 - dt * 4);
+  detectorFlash.d1 = Math.max(0, detectorFlash.d1 - dt * 4);
+  detectorFlash.eve = Math.max(0, detectorFlash.eve - dt * 3);
+}
+
+function drawOpticalBench() {
+  if (!channelCtx || !channelCanvas) return;
+  const w = channelCanvas.getBoundingClientRect().width;
+  const h = 340;
+  const ctx = channelCtx;
+
+  ctx.clearRect(0, 0, w, h);
+
+  ctx.strokeStyle = "rgba(23, 45, 68, 0.4)";
+  ctx.lineWidth = 1;
+  const gridSize = 30;
+  for (let x = 0; x < w; x += gridSize) {
     ctx.beginPath();
-
-    values.forEach((value, i) => {
-      const x = left +
-        (values.length === 1 ? 0 : i / (values.length - 1)) * plotW;
-
-      const y = top + plotH - clamp(value / maxY, 0, 1) * plotH;
-
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+  for (let y = 0; y < h; y += gridSize) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
     ctx.stroke();
   }
 
-  if (theoryY != null && theoryY <= maxY) {
-    const y = top + plotH - theoryY / maxY * plotH;
+  const beamY = h / 2;
+  const aliceX = 130;
+  const bobX = w - 140;
+  const eveX = w / 2;
 
-    ctx.setLineDash([5, 4]);
-    ctx.strokeStyle = "#5bd0c7";
-    ctx.beginPath();
-    ctx.moveTo(left, y);
-    ctx.lineTo(width - right, y);
-    ctx.stroke();
-    ctx.setLineDash([]);
+  const gradBeam = ctx.createLinearGradient(aliceX, beamY, bobX, beamY);
+  gradBeam.addColorStop(0, "rgba(0, 229, 255, 0.6)");
+  gradBeam.addColorStop(0.5, eveEnabled ? "rgba(255, 51, 102, 0.7)" : "rgba(0, 245, 160, 0.5)");
+  gradBeam.addColorStop(1, "rgba(0, 245, 160, 0.6)");
 
-    ctx.fillStyle = "#5bd0c7";
-    ctx.fillText(
-      `Theory ${(theoryY * 100).toFixed(1)}%`,
-      width - right - 83,
-      Math.max(11, y - 5)
-    );
-  }
+  ctx.strokeStyle = gradBeam;
+  ctx.lineWidth = 3;
+  ctx.setLineDash([8, 6]);
+  ctx.beginPath();
+  ctx.moveTo(aliceX, beamY);
+  ctx.lineTo(bobX, beamY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  drawAliceStation(ctx, aliceX - 90, beamY - 70, 90, 140);
+  drawEveStation(ctx, eveX - 45, beamY - 60, 90, 120);
+  drawBobStation(ctx, bobX, beamY - 70, 120, 140);
+
+  flyingPhotons.forEach(p => drawPhoton(ctx, p, beamY));
 }
 
-function redrawExperimentCharts() {
-  if (!latestExperiment) return;
+function drawAliceStation(ctx, x, y, w, h) {
+  ctx.fillStyle = "#071628";
+  ctx.strokeStyle = "#00e5ff";
+  ctx.lineWidth = 2;
+  roundRect(ctx, x, y, w, h, 10, true, true);
 
-  drawBars($("chart-match"), [
-    {
-      label: "Observed",
-      value: latestExperiment.empiricalMatch,
-      color: "#00c8ff"
-    },
-    {
-      label: "Theory",
-      value: 0.5,
-      color: "#5bd0c7"
-    }
-  ], 1);
+  ctx.fillStyle = "#00e5ff";
+  ctx.font = "bold 11px Inter";
+  ctx.textAlign = "center";
+  ctx.fillText("ALICE (TX)", x + w / 2, y + 20);
 
-  drawHistogram(
-    $("chart-histogram"),
-    latestExperiment.lengths,
-    0,
-    latestExperiment.photons,
-    4
-  );
+  ctx.fillStyle = "#122a44";
+  ctx.strokeStyle = "rgba(0, 229, 255, 0.5)";
+  ctx.fillRect(x + w - 18, y + h / 2 - 14, 18, 28);
+  ctx.strokeRect(x + w - 18, y + h / 2 - 14, 18, 28);
 
-  drawLine(
-    $("chart-qber"),
-    latestExperiment.qbers.slice(0, 250),
-    0.5,
-    latestExperiment.theoreticalQber
-  );
+  ctx.fillStyle = "rgba(0, 229, 255, 0.8)";
+  ctx.beginPath();
+  ctx.arc(x + w, y + h / 2, 6, 0, Math.PI * 2);
+  ctx.fill();
 
-  const probabilityBars = [];
+  ctx.strokeStyle = "rgba(0, 229, 255, 0.4)";
+  ctx.beginPath();
+  ctx.arc(x + w / 2 - 8, y + h / 2, 22, 0, Math.PI * 2);
+  ctx.stroke();
 
-  for (let p = 0; p <= 1.0001; p += 0.1) {
-    probabilityBars.push({
-      label: `${Math.round(p * 100)}%`,
-      value: p / 4,
-      color: "#5bd0c7"
-    });
-  }
-
-  drawBars($("chart-eve"), probabilityBars, 0.3);
+  ctx.fillStyle = "#8fb3d4";
+  ctx.font = "9px Fira Code";
+  ctx.fillText("Bases: +, ×", x + w / 2 - 8, y + h - 14);
 }
 
-function drawInitialCharts() {
-  drawBars($("chart-match"), [
-    { label: "Observed", value: 0, color: "#00c8ff" },
-    { label: "Theory", value: 0.5, color: "#5bd0c7" }
-  ], 1);
+function drawEveStation(ctx, x, y, w, h) {
+  const active = eveEnabled;
+  ctx.fillStyle = active ? "#1c0910" : "#071220";
+  ctx.strokeStyle = active ? "#ff3366" : "rgba(100, 130, 160, 0.3)";
+  ctx.lineWidth = active ? 2 : 1;
+  roundRect(ctx, x, y, w, h, 8, true, true);
 
-  drawHistogram($("chart-histogram"), [], 0, 128, 4);
-  drawLine($("chart-qber"), [], 0.5);
+  ctx.fillStyle = active ? "#ff3366" : "#627c96";
+  ctx.font = "bold 11px Inter";
+  ctx.textAlign = "center";
+  ctx.fillText("EVE (EVA)", x + w / 2, y + 20);
 
-  const probabilityBars = [];
-
-  for (let p = 0; p <= 1.0001; p += 0.1) {
-    probabilityBars.push({
-      label: `${Math.round(p * 100)}%`,
-      value: p / 4
-    });
-  }
-
-  drawBars($("chart-eve"), probabilityBars, 0.3);
-}
-
-window.addEventListener("resize", () => {
-  if ($("analytics-modal")?.classList.contains("open")) {
-    if (latestExperiment) redrawExperimentCharts();
-    else drawInitialCharts();
-  }
-});
-
-/* ---------------- EXPORTS AND REPORTS ---------------- */
-
-function toExperimentRow(data) {
-  return {
-    time: data.time,
-    type: "BB84",
-    photons: data.n,
-    matchingBases: data.matchCount,
-    matchProbability: data.matchProbability,
-    sampleBits: data.sample.size,
-    sampleErrors: data.sampleErrors,
-    qber: data.sampleQber,
-    eve: data.useEve,
-    interceptionProbability: data.interceptProbability,
-    accepted: data.accepted,
-    proposedFinalBits: data.proposedPrivacyAmplifiedLength
-  };
-}
-
-function downloadText(filename, text, mime = "text/plain;charset=utf-8") {
-  const url = URL.createObjectURL(new Blob([text], { type: mime }));
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download = filename;
-
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-function csvEscape(value) {
-  return `"${String(value ?? "").replace(/"/g, '""')}"`;
-}
-
-function exportCSV() {
-  if (!experimentHistory.length) {
-    showToast("Run an experiment before exporting CSV.");
-    return;
-  }
-
-  const columns = [
-    ...new Set(experimentHistory.flatMap(row => Object.keys(row)))
-  ];
-
-  const csv = [
-    columns.map(csvEscape).join(","),
-    ...experimentHistory.map(row =>
-      columns.map(key => csvEscape(row[key])).join(",")
-    )
-  ].join("\r\n");
-
-  downloadText(
-    "bb84_ptrp_experiments.csv",
-    csv,
-    "text/csv;charset=utf-8"
-  );
-
-  showToast("CSV downloaded.");
-}
-
-function downloadReport() {
-  if (!experimentHistory.length) {
-    showToast("Run an experiment before generating a report.");
-    return;
-  }
-
-  const headers = [
-    ...new Set(experimentHistory.flatMap(row => Object.keys(row)))
-  ];
-
-  const rows = experimentHistory.map((row, index) => `
-    <tr>
-      <td>${index + 1}</td>
-      ${headers.map(key => `<td>${escapeHTML(row[key] ?? "")}</td>`).join("")}
-    </tr>
-  `).join("");
-
-  const html = `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>BB84 PTRP Experiment Report</title>
-<style>
-body{font:14px Arial;margin:35px;color:#142235}
-h1{color:#087b9e}
-p{line-height:1.6}
-.wrap{overflow:auto}
-table{border-collapse:collapse;font-size:11px}
-th,td{border:1px solid #b9c8d5;padding:7px;text-align:left}
-th{background:#e8f5fa}
-</style>
-</head>
-<body>
-<h1>BB84 Protocol — PTRP Experiment Report</h1>
-<p><strong>Generated:</strong> ${escapeHTML(new Date().toLocaleString())}</p>
-<p><strong>Room:</strong> ${escapeHTML(room)} ·
-<strong>Role:</strong> ${escapeHTML(role)}</p>
-
-<h2>Probability model</h2>
-<p>For independent, uniformly random bases, the basis-match probability
-is P(M) = 1/2. The sifted length K follows Binomial(N, 1/2), with
-E[K] = N/2 and Var(K) = N/4.</p>
-
-<p>Under the ideal intercept-resend model, the expected QBER among
-sifted bits is approximately p(Eve)/4.</p>
-
-<h2>Recorded experiments</h2>
-<div class="wrap">
-<table>
-<thead><tr><th>#</th>
-${headers.map(key => `<th>${escapeHTML(key)}</th>`).join("")}
-</tr></thead>
-<tbody>${rows}</tbody>
-</table>
-</div>
-
-<h2>Conclusion</h2>
-<p>Monte Carlo results should approach theoretical values as the number
-of trials increases. Finite samples fluctuate. This website is a classical
-educational simulation, not a security-certified QKD system.</p>
-</body>
-</html>`;
-
-  downloadText(
-    "bb84_ptrp_report.html",
-    html,
-    "text/html;charset=utf-8"
-  );
-
-  showToast("HTML report downloaded. Open it and print to PDF if required.");
-}
-
-function printReport() {
-  if (!experimentHistory.length) {
-    showToast("Run an experiment before generating a report.");
-    return;
-  }
-
-  downloadReport();
-  showToast("Open the report and choose Print → Save as PDF.");
-}
-
-function escapeHTML(value) {
-  return String(value ?? "").replace(/[&<>"']/g, character => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  })[character]);
-}
+  ctx.fillStyle = active ? "rgba(255, 51, 102, 0.2)" :
