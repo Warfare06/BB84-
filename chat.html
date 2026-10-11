@@ -1,326 +1,1030 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#07111f">
-  <title>BB84 PTRP Quantum Lab</title>
+  <meta name="theme-color" content="#040914">
+  <title>BB84 Quantum Key Distribution &amp; PTRP Lab</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body class="chat-page">
-  <div id="toast" class="toast" role="status"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <div class="app-shell">
+    <!-- LEFT SIDEBAR -->
     <aside class="sidebar">
       <div class="side-brand">
-        <p class="eyebrow">BB84 · PTRP PROJECT</p>
-        <h2>Quantum Network</h2>
+        <div class="side-brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9"/>
+            <line x1="3.6" y1="9" x2="20.4" y2="9"/>
+            <line x1="3.6" y1="15" x2="20.4" y2="15"/>
+            <path d="M11.5 3a17 17 0 0 0 0 18"/>
+            <path d="M12.5 3a17 17 0 0 1 0 18"/>
+          </svg>
+        </div>
+        <div>
+          <p class="eyebrow">BB84 · PTRP PROJECT</p>
+          <h2>Quantum Network</h2>
+        </div>
       </div>
 
       <div class="side-controls">
-        <label for="room-select">Communication room</label>
+        <label for="room-select">Quantum Channel Room</label>
         <select id="room-select">
-          <option value="server_1">Server 1 · Alpha</option>
-          <option value="server_2">Server 2 · Beta</option>
-          <option value="server_3">Server 3 · Gamma</option>
-          <option value="server_4">Server 4 · Delta</option>
-          <option value="server_5">Server 5 · Epsilon</option>
+          <option value="server_1">Server 1 · Alpha Channel</option>
+          <option value="server_2">Server 2 · Beta Channel</option>
+          <option value="server_3">Server 3 · Gamma Channel</option>
+          <option value="server_4">Server 4 · Delta Channel</option>
+          <option value="server_5">Server 5 · Epsilon Channel</option>
         </select>
 
-        <label for="role-select">Your role</label>
+        <label for="role-select">Your Station Role</label>
         <select id="role-select">
-          <option value="Alice">Alice · Sender</option>
-          <option value="Bob">Bob · Receiver</option>
+          <option value="Alice">Alice · Quantum Transmitter</option>
+          <option value="Bob">Bob · Quantum Receiver</option>
         </select>
       </div>
 
-      <div class="person-card">
-        <div class="avatar alice-avatar">A</div>
-        <div><strong>Alice</strong><small>Sender</small></div>
+      <div class="stations-section">
+        <div class="person-card alice-card">
+          <div class="avatar alice-avatar">A</div>
+          <div class="person-info">
+            <strong>Alice</strong>
+            <small>Transmitter · Laser Prep</small>
+          </div>
+          <span class="station-badge">TX</span>
+        </div>
+
+        <div class="person-card bob-card">
+          <div class="avatar bob-avatar">B</div>
+          <div class="person-info">
+            <strong>Bob</strong>
+            <small>Receiver · PBS Detection</small>
+          </div>
+          <span class="station-badge">RX</span>
+        </div>
       </div>
 
-      <div class="person-card">
-        <div class="avatar bob-avatar">B</div>
-        <div><strong>Bob</strong><small>Receiver</small></div>
-      </div>
-
+      <!-- EVE ADVERSARY MODULE -->
       <div class="eve-card">
         <div class="person-card no-border">
           <div class="avatar eve-avatar">E</div>
-          <div>
-            <strong>Eve</strong>
+          <div class="person-info">
+            <strong>Eve (Eavesdropper)</strong>
             <small id="eve-state">Attack disabled</small>
           </div>
         </div>
 
-        <label for="eve-probability">
-          Interception probability
-          <span id="eve-probability-label">100%</span>
-        </label>
-        <input id="eve-probability" type="range"
-               min="0" max="100" step="5" value="100">
+        <div class="eve-slider-wrap">
+          <label for="eve-probability">
+            <span>Interception Probability <i>p<sub>E</sub></i></span>
+            <span id="eve-probability-label" class="bold-tag">100%</span>
+          </label>
+          <input id="eve-probability" type="range" min="0" max="100" step="5" value="100">
+        </div>
+
         <button id="eve-toggle" class="danger-btn full-width">
-          Enable Eve
+          Enable Eve Intercept-Resend
         </button>
       </div>
 
-      <div class="side-bottom">
-        <div>
-          <span id="connection-dot" class="status-dot"></span>
-          <span id="connection-state">Connecting…</span>
+      <!-- KEY RESERVOIR WIDGET -->
+      <div class="key-reservoir-card">
+        <div class="reservoir-header">
+          <span>Active Quantum Key</span>
+          <span id="key-bits-count" class="key-count-tag">0 bits</span>
         </div>
-        <small>Classical simulation · Not secure encryption</small>
+        <div class="key-progress-bar">
+          <div id="key-progress-fill" class="key-progress-fill" style="width: 0%"></div>
+        </div>
+        <div class="key-reservoir-footer">
+          <small id="key-reservoir-desc">Generate a key to enable OTP</small>
+          <button id="quick-sim-btn" class="mini-btn">New Key</button>
+        </div>
+      </div>
+
+      <div class="side-bottom">
+        <div class="connection-status">
+          <span id="connection-dot" class="status-dot"></span>
+          <span id="connection-state">Connecting to channel…</span>
+        </div>
+        <small class="disclaimer-text">Classical simulation of quantum stochastic channel · Educational OTP</small>
       </div>
     </aside>
 
+    <!-- MAIN CHAT PANEL -->
     <main class="main-panel">
       <header class="topbar">
-        <div>
-          <p class="eyebrow">DEMO COMMUNICATION ROOM</p>
-          <h1 id="room-title">Quantum Chat</h1>
-          <p id="peer-status" class="muted">Initializing channel…</p>
+        <div class="topbar-info">
+          <p class="eyebrow">DEMONSTRATION QUANTUM NETWORK</p>
+          <h1 id="room-title">Quantum Lab Chat</h1>
+          <p id="peer-status" class="muted">Initializing quantum channel…</p>
         </div>
 
         <div class="top-actions">
           <span id="key-status" class="key-badge">No accepted key</span>
-          <button class="secondary-btn" id="open-sim">BB84 Simulator</button>
-          <button class="secondary-btn" id="open-analytics">PTRP Analytics</button>
-          <button class="secondary-btn" id="open-logs">Crypto Logs</button>
-          <button class="secondary-btn" id="export-csv">Export CSV</button>
-          <button class="secondary-btn" id="print-report">Report</button>
+          <button class="primary-action-btn" id="open-sim">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+            <span>BB84 Simulator</span>
+          </button>
+          <button class="secondary-btn" id="open-analytics">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+            <span>PTRP Analytics</span>
+          </button>
+          <button class="secondary-btn" id="open-logs">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            <span>Crypto Logs</span>
+          </button>
+          <button class="secondary-btn icon-only-btn" id="audio-toggle" title="Toggle Sound Clicks">
+            <span id="audio-icon">🔊</span>
+          </button>
+          <button class="secondary-btn" id="export-csv" title="Export Experiment History as CSV">Export CSV</button>
+          <button class="secondary-btn" id="print-report" title="Generate Comprehensive PTRP Report">Report</button>
         </div>
       </header>
 
+      <!-- NOTICE BANNER -->
       <div class="notice">
-        Educational BB84 simulation using classical random numbers. Keys are
-        published through Firebase in this demo; do not use for confidential data.
+        <span class="notice-icon">ℹ️</span>
+        <span>
+          <strong>PTRP Quantum Demonstration:</strong> Single photons simulated with Bernoulli basis choices, Binomial sifted key length, and Poisson pulse statistics. All cryptographic keys are verified against the 11% Shor-Preskill threshold.
+        </span>
       </div>
 
+      <!-- QUICK STATS BAR -->
       <section class="quick-stats">
         <div class="quick-stat">
-          <span>Basis match</span><strong id="stat-match">—</strong>
+          <span>Empirical Basis Match</span>
+          <strong id="stat-match">—</strong>
+          <small>Theory: 50.0% (Bernoulli)</small>
         </div>
         <div class="quick-stat">
-          <span>Sample QBER</span><strong id="stat-qber">—</strong>
+          <span>Sample QBER</span>
+          <strong id="stat-qber">—</strong>
+          <small id="stat-qber-sub">Threshold: &le; 11.0%</small>
         </div>
         <div class="quick-stat">
-          <span>Final demo bits</span><strong id="stat-key-length">0</strong>
+          <span>Final Secure Key</span>
+          <strong id="stat-key-length">0 bits</strong>
+          <small id="stat-key-sub">Available for OTP</small>
         </div>
         <div class="quick-stat">
-          <span>Eve</span><strong id="stat-eve">OFF</strong>
+          <span>Channel Security</span>
+          <strong id="stat-security" class="security-safe">SECURE</strong>
+          <small id="stat-eve-sub">Eve: OFF</small>
         </div>
       </section>
 
+      <!-- CHAT MESSAGE FEED -->
       <section id="chat-messages" class="chat-messages" aria-live="polite"></section>
       <div id="typing-line" class="typing-line"></div>
 
+      <!-- COMPOSER FORM -->
       <form id="message-form" class="composer">
-        <button type="button" id="generate-key" class="outline-btn">
-          Generate BB84 Key
+        <button type="button" id="generate-key" class="outline-btn gen-key-btn" title="Open BB84 Key Generation Simulator">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-2-2l2 2M3 13l6-6 4 4L7 17H3v-4z"/><circle cx="16.5" cy="7.5" r="2.5"/></svg>
+          <span>Generate Key</span>
         </button>
         <textarea id="message-input" rows="1" maxlength="2000"
-                  placeholder="Type a message…" aria-label="Message"></textarea>
-        <button type="submit" class="send-btn">Send ↗</button>
+                  placeholder="Type a message (Vernam One-Time Pad encrypted)…" aria-label="Message"></textarea>
+        <button type="submit" class="send-btn">
+          <span>Send</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
       </form>
     </main>
 
+    <!-- RIGHT CRYPTO LOGS PANEL -->
     <aside id="logs-panel" class="logs-panel">
       <div class="panel-title">
-        <div><p class="eyebrow">TRACE VIEW</p><h3>Crypto Logs</h3></div>
+        <div>
+          <p class="eyebrow">MATHEMATICAL TRACE</p>
+          <h3>Crypto &amp; PTRP Logs</h3>
+        </div>
         <button class="icon-btn" id="close-logs" aria-label="Close logs">×</button>
       </div>
+      <div class="logs-toolbar">
+        <button id="clear-logs" class="mini-btn">Clear</button>
+        <span id="log-count" class="muted">0 events</span>
+      </div>
       <div id="crypto-logs" class="crypto-logs">
-        <p class="muted">Simulation events appear here.</p>
+        <p class="muted empty-logs">Simulation and cryptographic events will appear here.</p>
       </div>
     </aside>
   </div>
 
-  <!-- BB84 simulator modal -->
-  <section id="sim-modal" class="modal" role="dialog"
-           aria-modal="true" aria-labelledby="sim-title">
-    <div class="modal-card wide">
+  <!-- MODAL 1: BB84 KEY EXCHANGE SIMULATOR & OPTICAL BENCH -->
+  <section id="sim-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="sim-title">
+    <div class="modal-card wide extra-wide">
       <div class="modal-heading">
         <div>
-          <p class="eyebrow">QUANTUM CHANNEL</p>
-          <h2 id="sim-title">BB84 Key Exchange</h2>
+          <p class="eyebrow">QUANTUM OPTICAL CHANNEL &amp; KEY GENERATION</p>
+          <h2 id="sim-title">BB84 Protocol Simulator &amp; Visualizer</h2>
         </div>
         <button class="icon-btn" data-close="sim-modal" aria-label="Close">×</button>
       </div>
 
-      <p class="muted">
-        Explore random bases, Eve interception, Bob's measurements,
-        basis reconciliation and error sampling.
-      </p>
+      <!-- SIMULATOR TABS -->
+      <nav class="tab-nav">
+        <button class="tab-btn active" data-sim-tab="optical-bench">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <span>Optical Bench (Live Animation)</span>
+        </button>
+        <button class="tab-btn" data-sim-tab="pipeline-view">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+          <span>Key Distillation Pipeline (Stages 01–06)</span>
+        </button>
+        <button class="tab-btn" data-sim-tab="table-view">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
+          <span>Photon Measurement Matrix</span>
+        </button>
+        <button class="tab-btn" data-sim-tab="malus-view">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+          <span>Polarization &amp; Malus's Law</span>
+        </button>
+      </nav>
 
+      <!-- SIMULATOR TOOLBAR -->
       <div class="sim-toolbar">
-        <label>Photons
-          <select id="photon-count">
-            <option value="128">128</option>
-            <option value="256">256</option>
-            <option value="512" selected>512</option>
-            <option value="1024">1,024</option>
-          </select>
-        </label>
-        <button id="run-bb84" class="primary-btn">Run Simulation</button>
-        <button id="step-bb84" class="secondary-btn">Next Stage</button>
-        <button id="reset-bb84" class="secondary-btn">Reset</button>
+        <div class="toolbar-group">
+          <label for="photon-count">
+            <span>Photons (<i>N</i>)</span>
+            <select id="photon-count">
+              <option value="64">64</option>
+              <option value="128">128</option>
+              <option value="256">256</option>
+              <option value="512" selected>512</option>
+              <option value="1024">1,024</option>
+            </select>
+          </label>
+
+          <label for="channel-noise">
+            <span>Noise <i>&eta;</i> (<span id="noise-label">0%</span>)</span>
+            <input id="channel-noise" type="range" min="0" max="25" step="1" value="0">
+          </label>
+
+          <label for="anim-speed">
+            <span>Speed</span>
+            <select id="anim-speed">
+              <option value="0.25">0.25x Slow-mo</option>
+              <option value="1" selected>1.0x Realtime</option>
+              <option value="3">3.0x Fast</option>
+              <option value="10">10x Turbo</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="toolbar-actions">
+          <button id="stream-toggle" class="primary-btn">
+            <span id="stream-icon">▶</span>
+            <span id="stream-text">Stream Photons</span>
+          </button>
+          <button id="step-photon" class="secondary-btn" title="Send a single photon and inspect its state transition">
+            Step 1 Photon
+          </button>
+          <button id="run-bb84" class="secondary-btn" title="Simulate full photon batch instantly">
+            Instant Burst
+          </button>
+          <button id="step-bb84" class="secondary-btn" title="Step through protocol distillation stages">
+            Next Stage
+          </button>
+          <button id="reset-bb84" class="secondary-btn">Reset</button>
+        </div>
       </div>
 
-      <div id="protocol-steps" class="protocol-steps">
-        <div class="protocol-step active">
-          <span>01</span><strong>Prepare</strong><small>Alice chooses random bits and bases</small>
-        </div>
-        <div class="protocol-step">
-          <span>02</span><strong>Transmit</strong><small>Eve may intercept</small>
-        </div>
-        <div class="protocol-step">
-          <span>03</span><strong>Measure</strong><small>Bob measures using random bases</small>
-        </div>
-        <div class="protocol-step">
-          <span>04</span><strong>Sift</strong><small>Keep matching bases</small>
-        </div>
-        <div class="protocol-step">
-          <span>05</span><strong>Test</strong><small>Estimate QBER using a sample</small>
-        </div>
-        <div class="protocol-step">
-          <span>06</span><strong>Post-process</strong><small>Conceptual key shortening</small>
-        </div>
-      </div>
-
+      <!-- METRICS SUMMARY ROW -->
       <div class="sim-metrics">
-        <div><span>Photons</span><strong id="sim-photons">—</strong></div>
-        <div><span>Matching bases</span><strong id="sim-matches">—</strong></div>
-        <div><span>Sample QBER</span><strong id="sim-qber">—</strong></div>
-        <div><span>Final demo bits</span><strong id="sim-final-bits">—</strong></div>
+        <div>
+          <span>Photons Prepared (<i>N</i>)</span>
+          <strong id="sim-photons">—</strong>
+        </div>
+        <div>
+          <span>Basis Matches <i>K</i></span>
+          <strong id="sim-matches">—</strong>
+        </div>
+        <div>
+          <span>Sample QBER (<i>Q̂</i>)</span>
+          <strong id="sim-qber">—</strong>
+        </div>
+        <div>
+          <span>Final Key Length</span>
+          <strong id="sim-final-bits">—</strong>
+        </div>
       </div>
 
-      <div class="table-wrap">
-        <table id="bb84-table">
-          <thead>
-            <tr>
-              <th>i</th><th>Alice bit</th><th>Alice basis</th>
-              <th>Eve basis</th><th>Bob basis</th><th>Bob bit</th>
-              <th>Match?</th><th>Sample?</th><th>Sifted bit</th>
-            </tr>
-          </thead>
-          <tbody id="bb84-table-body">
-            <tr><td colspan="9" class="empty-cell">Run a simulation to populate the table.</td></tr>
-          </tbody>
-        </table>
+      <!-- TAB 1: OPTICAL BENCH CANVAS -->
+      <div id="tab-optical-bench" class="sim-tab-content active">
+        <div class="canvas-container">
+          <canvas id="channel-canvas" width="1180" height="340"></canvas>
+          <div class="canvas-hud">
+            <span id="hud-status" class="hud-pill">Optical Bench Ready</span>
+            <span id="hud-eve" class="hud-pill hud-eve-pill">Eve: DISARMED</span>
+            <span id="hud-photon-info" class="hud-pill">Photon #0</span>
+          </div>
+        </div>
+
+        <!-- REAL-TIME STATE INSPECTOR -->
+        <div id="quantum-state-inspector" class="state-inspector-card">
+          <div class="inspector-col">
+            <span class="step-tag">ALICE PREPARATION</span>
+            <div class="state-math">
+              Bit: <strong id="insp-alice-bit">—</strong> · Basis: <strong id="insp-alice-basis">—</strong>
+            </div>
+            <div class="state-ket">State: <code id="insp-alice-state">|&psi;&rang; = —</code></div>
+          </div>
+          <div class="inspector-arrow">➔</div>
+          <div class="inspector-col">
+            <span class="step-tag">EVE CHANNEL INTERCEPT</span>
+            <div class="state-math">
+              Action: <strong id="insp-eve-action">Bypassed</strong>
+            </div>
+            <div class="state-ket">Eve Basis: <code id="insp-eve-basis">—</code> · Measured: <strong id="insp-eve-bit">—</strong></div>
+          </div>
+          <div class="inspector-arrow">➔</div>
+          <div class="inspector-col">
+            <span class="step-tag">BOB MEASUREMENT</span>
+            <div class="state-math">
+              Bob Basis: <strong id="insp-bob-basis">—</strong> · Detected Bit: <strong id="insp-bob-bit">—</strong>
+            </div>
+            <div class="state-ket">Detector Click: <code id="insp-bob-detector">—</code></div>
+          </div>
+          <div class="inspector-arrow">=</div>
+          <div class="inspector-col outcome-col">
+            <span class="step-tag">PTRP SIFTING OUTCOME</span>
+            <div class="state-math">
+              Basis Match: <strong id="insp-match-status">—</strong>
+            </div>
+            <div class="state-ket">Retained for Key: <code id="insp-sift-status">—</code></div>
+          </div>
+        </div>
       </div>
 
+      <!-- TAB 2: KEY DISTILLATION PIPELINE -->
+      <div id="tab-pipeline-view" class="sim-tab-content">
+        <div id="protocol-steps" class="protocol-steps">
+          <div class="protocol-step active" data-step="0">
+            <div class="step-num">01</div>
+            <strong>State Prep</strong>
+            <small>Alice samples <i>A<sub>i</sub> ~ Bernoulli(0.5)</i> and bases <i>B<sub>A</sub> ~ Bernoulli(0.5)</i></small>
+            <span class="step-count" id="count-step-1">N = 512</span>
+          </div>
+          <div class="protocol-step" data-step="1">
+            <div class="step-num">02</div>
+            <strong>Transmission</strong>
+            <small>Photons traverse channel. Eve intercepts with probability <i>p<sub>E</sub></i></small>
+            <span class="step-count" id="count-step-2">Channel</span>
+          </div>
+          <div class="protocol-step" data-step="2">
+            <div class="step-num">03</div>
+            <strong>Measurement</strong>
+            <small>Bob measures using independent bases <i>B<sub>B</sub> ~ Bernoulli(0.5)</i></small>
+            <span class="step-count" id="count-step-3">P(Match)=0.5</span>
+          </div>
+          <div class="protocol-step" data-step="3">
+            <div class="step-num">04</div>
+            <strong>Basis Sifting</strong>
+            <small>Retain positions where <i>B<sub>A</sub> = B<sub>B</sub></i>. Expected <i>K ~ Binomial(N, 1/2)</i></small>
+            <span class="step-count" id="count-step-4">K &approx; N/2</span>
+          </div>
+          <div class="protocol-step" data-step="4">
+            <div class="step-num">05</div>
+            <strong>QBER Test</strong>
+            <small>Sacrifice 25% sample to test <i>H<sub>0</sub>: Q &le; 11%</i> (Shor-Preskill security bound)</small>
+            <span class="step-count" id="count-step-5">Q &le; 11%?</span>
+          </div>
+          <div class="protocol-step" data-step="5">
+            <div class="step-num">06</div>
+            <strong>Privacy Amp</strong>
+            <small>Toeplitz matrix hashing shrinks key by <i>2·H<sub>2</sub>(Q)</i> to distill secret One-Time Pad</small>
+            <span class="step-count" id="count-step-6">Secure OTP</span>
+          </div>
+        </div>
+
+        <!-- BITSTREAM PIPELINE VISUALIZER -->
+        <div class="bitstream-pipeline-card">
+          <h3>Bitstream Transformation Pipeline</h3>
+          <div class="pipeline-ribbon">
+            <div class="ribbon-stage">
+              <span class="ribbon-label">1. Raw Bits (Alice)</span>
+              <div id="ribbon-raw" class="ribbon-bits">Awaiting simulation…</div>
+            </div>
+            <div class="ribbon-stage">
+              <span class="ribbon-label">2. Sifted Key (Matching Bases)</span>
+              <div id="ribbon-sifted" class="ribbon-bits">Awaiting sifting…</div>
+            </div>
+            <div class="ribbon-stage">
+              <span class="ribbon-label">3. Tested Sample (Publicly Compared)</span>
+              <div id="ribbon-sample" class="ribbon-bits">Awaiting error estimation…</div>
+            </div>
+            <div class="ribbon-stage">
+              <span class="ribbon-label">4. Distilled Secret Key (Privacy Amplified)</span>
+              <div id="ribbon-final" class="ribbon-bits">Awaiting privacy amplification…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: PHOTON DATA MATRIX TABLE -->
+      <div id="tab-table-view" class="sim-tab-content">
+        <div class="table-filter-bar">
+          <span>Filter Photons:</span>
+          <button class="filter-btn active" data-filter="all">All (All Photons)</button>
+          <button class="filter-btn" data-filter="match">Matched Bases (K)</button>
+          <button class="filter-btn" data-filter="mismatch">Mismatched Bases</button>
+          <button class="filter-btn" data-filter="sample">Tested Sample</button>
+          <button class="filter-btn" data-filter="error">Errors Only (A &ne; B)</button>
+          <input type="text" id="table-search" placeholder="Search photon #..." class="table-search-input">
+        </div>
+
+        <div class="table-wrap">
+          <table id="bb84-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Alice Bit</th>
+                <th>Alice Basis</th>
+                <th>Eve Basis</th>
+                <th>Bob Basis</th>
+                <th>Bob Bit</th>
+                <th>Basis Match?</th>
+                <th>Sample?</th>
+                <th>Bit Error?</th>
+                <th>Sifted Bit</th>
+              </tr>
+            </thead>
+            <tbody id="bb84-table-body">
+              <tr><td colspan="10" class="empty-cell">Run a simulation or stream photons to populate the data matrix.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 4: POLARIZATION & MALUS LAW -->
+      <div id="tab-malus-view" class="sim-tab-content">
+        <div class="malus-container">
+          <div class="malus-dial-col">
+            <canvas id="malus-canvas" width="340" height="340"></canvas>
+            <div class="malus-controls">
+              <label>Alice State Angle: <span id="alice-angle-val">0&deg; (|0&rang;)</span></label>
+              <input type="range" id="alice-angle-slider" min="0" max="180" step="45" value="0">
+              <label>Bob Basis Angle: <span id="bob-angle-val">0&deg; (+)</span></label>
+              <input type="range" id="bob-angle-slider" min="0" max="180" step="45" value="0">
+            </div>
+          </div>
+
+          <div class="malus-explanation-col">
+            <h3>Quantum Polarization &amp; Malus's Law</h3>
+            <p>
+              In quantum mechanics, when a photon in polarized state <code>|&psi;&rang;</code> with angle <code>&theta;<sub>A</sub></code>
+              is measured using an analyzer oriented at angle <code>&theta;<sub>B</sub></code>, the measurement probability obeys <strong>Malus's Law</strong>:
+            </p>
+            <div class="math-callout">
+              <code>P(Detect | &theta;<sub>A</sub>, &theta;<sub>B</sub>) = |&lang;&psi;<sub>B</sub>|&psi;<sub>A</sub>&rang;|<sup>2</sup> = cos<sup>2</sup>(&theta;<sub>B</sub> - &theta;<sub>A</sub>)</code>
+            </div>
+
+            <div class="malus-cases-grid">
+              <div class="malus-case">
+                <strong>Matching Bases (&Delta;&theta; = 0&deg;)</strong>
+                <p><code>cos<sup>2</sup>(0&deg;) = 1.0</code></p>
+                <small>Deterministic transmission: 100% agreement between Alice and Bob.</small>
+              </div>
+              <div class="malus-case">
+                <strong>Conjugate Bases (&Delta;&theta; = 45&deg;)</strong>
+                <p><code>cos<sup>2</sup>(45&deg;) = 0.50</code></p>
+                <small>Pure random coin toss! Maximally uncertain quantum superposition.</small>
+              </div>
+              <div class="malus-case">
+                <strong>Orthogonal State (&Delta;&theta; = 90&deg;)</strong>
+                <p><code>cos<sup>2</sup>(90&deg;) = 0.0</code></p>
+                <small>Orthogonal projection: exactly 0% detection probability in that detector.</small>
+              </div>
+            </div>
+
+            <div class="malus-live-calc">
+              <span>Current Angular Difference: </span><strong id="malus-delta">&Delta;&theta; = 0&deg;</strong><br>
+              <span>Current Projection Probability: </span><strong id="malus-prob">P = 100%</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL FOOTER -->
       <div id="sim-result" class="result-banner">Ready to simulate.</div>
       <div class="modal-footer">
         <button id="publish-key" class="primary-btn" disabled>
           Publish Accepted Demo Key to Bob
         </button>
         <p class="fine-print">
-          This transfers simulated key bits through Firebase. It is not a secure QKD channel.
+          Key is published to the room Firebase channel for Vernam One-Time Pad demonstration.
         </p>
       </div>
     </div>
   </section>
 
-  <!-- PTRP analytics modal -->
-  <section id="analytics-modal" class="modal" role="dialog"
-           aria-modal="true" aria-labelledby="analytics-title">
-    <div class="modal-card wide">
+  <!-- MODAL 2: PTRP PROBABILITY & RANDOM PROCESSES LAB -->
+  <section id="analytics-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="analytics-title">
+    <div class="modal-card wide extra-wide">
       <div class="modal-heading">
         <div>
-          <p class="eyebrow">PROBABILITY LAB</p>
-          <h2 id="analytics-title">PTRP Analytics</h2>
+          <p class="eyebrow">PROBABILITY THEORY &amp; RANDOM PROCESSES (PTRP)</p>
+          <h2 id="analytics-title">Stochastic Modeling &amp; Analytics Dashboard</h2>
         </div>
         <button class="icon-btn" data-close="analytics-modal" aria-label="Close">×</button>
       </div>
 
+      <!-- ANALYTICS TABS -->
+      <nav class="tab-nav">
+        <button class="tab-btn active" data-ana-tab="clt-tab">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="5" width="3" height="13"/><rect x="17" y="12" width="3" height="6"/></svg>
+          <span>Monte Carlo &amp; CLT Distribution</span>
+        </button>
+        <button class="tab-btn" data-ana-tab="stochastic-tab">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span>Random Walk &amp; Martingale Paths</span>
+        </button>
+        <button class="tab-btn" data-ana-tab="bayes-tab">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><path d="m7 17 3.5-9.5"/><path d="m17 17-3.5-9.5"/></svg>
+          <span>Bayes &amp; Total Probability</span>
+        </button>
+        <button class="tab-btn" data-ana-tab="shannon-tab">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="7"/></svg>
+          <span>Shannon Entropy &amp; Key Rate</span>
+        </button>
+        <button class="tab-btn" data-ana-tab="hypothesis-tab">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+          <span>Hypothesis Testing on QBER</span>
+        </button>
+        <button class="tab-btn" data-ana-tab="theorems-tab">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10"/></svg>
+          <span>PTRP Mathematical Theorems</span>
+        </button>
+      </nav>
+
+      <!-- ANALYTICS CONTROLS BAR -->
       <div class="analytics-controls">
-        <label>Monte Carlo trials
+        <label>
+          <span>Monte Carlo Trials (<i>M</i>)</span>
           <select id="trial-count">
-            <option value="100">100</option>
-            <option value="500" selected>500</option>
-            <option value="1000">1,000</option>
-            <option value="5000">5,000</option>
+            <option value="100">100 trials</option>
+            <option value="500" selected>500 trials</option>
+            <option value="1000">1,000 trials</option>
+            <option value="2500">2,500 trials</option>
+            <option value="5000">5,000 trials</option>
           </select>
         </label>
 
-        <label>Photons per trial
+        <label>
+          <span>Photons / Trial (<i>N</i>)</span>
           <select id="mc-photons">
             <option value="64">64</option>
             <option value="128" selected>128</option>
             <option value="256">256</option>
+            <option value="512">512</option>
           </select>
         </label>
 
         <label class="inline-check">
-          <input id="mc-eve" type="checkbox"> Include Eve
+          <input id="mc-eve" type="checkbox">
+          <span>Include Eve Attack</span>
         </label>
-        <button id="run-monte-carlo" class="primary-btn">Run Experiment</button>
+
+        <label id="mc-eve-prob-wrap" style="display: none;">
+          <span>Eve <i>p<sub>E</sub></i></span>
+          <select id="mc-eve-prob">
+            <option value="0.25">25% Intercept</option>
+            <option value="0.5">50% Intercept</option>
+            <option value="0.75">75% Intercept</option>
+            <option value="1.0" selected>100% Intercept</option>
+          </select>
+        </label>
+
+        <button id="run-monte-carlo" class="primary-btn">
+          <span>Run Monte Carlo Experiment</span>
+        </button>
       </div>
 
-      <div class="analytics-grid">
-        <article class="metric-card">
-          <span>Empirical P(match)</span><strong id="metric-match">—</strong>
-          <small>Theory: 0.5</small>
-        </article>
-        <article class="metric-card">
-          <span>Mean sifted length</span><strong id="metric-mean">—</strong>
-          <small>Theory: N/2</small>
-        </article>
-        <article class="metric-card">
-          <span>Variance</span><strong id="metric-variance">—</strong>
-          <small>Theory: N/4</small>
-        </article>
-        <article class="metric-card">
-          <span>Empirical QBER</span><strong id="metric-qber">—</strong>
-          <small id="metric-qber-note">Awaiting experiment</small>
-        </article>
+      <!-- TAB 1: CLT & DISTRIBUTION -->
+      <div id="ana-clt-tab" class="ana-tab-content active">
+        <div class="analytics-grid">
+          <article class="metric-card">
+            <span>Empirical P(Match)</span>
+            <strong id="metric-match">—</strong>
+            <small>Theory: 0.5000 (Bernoulli)</small>
+          </article>
+          <article class="metric-card">
+            <span>Mean Sifted Length <i>E[K]</i></span>
+            <strong id="metric-mean">—</strong>
+            <small id="metric-mean-theory">Theory: N/2</small>
+          </article>
+          <article class="metric-card">
+            <span>Variance <i>Var(K)</i></span>
+            <strong id="metric-variance">—</strong>
+            <small id="metric-var-theory">Theory: N/4</small>
+          </article>
+          <article class="metric-card">
+            <span>Empirical QBER <i>Q̂</i></span>
+            <strong id="metric-qber">—</strong>
+            <small id="metric-qber-note">Theory: p<sub>E</sub>/4</small>
+          </article>
+        </div>
+
+        <div class="chart-grid">
+          <article class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3>Sifted Key Length <i>K ~ Binomial(N, 1/2)</i></h3>
+                <p>Histogram with overlaid theoretical Gaussian PDF <i>N(&mu;=N/2, &sigma;<sup>2</sup>=N/4)</i></p>
+              </div>
+              <span class="clt-badge">CLT Validated</span>
+            </div>
+            <canvas id="chart-histogram"></canvas>
+          </article>
+
+          <article class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3>Empirical Basis-Match Probability</h3>
+                <p>Observed sample proportion vs. theoretical 0.5 with CLT 95% error margin</p>
+              </div>
+            </div>
+            <canvas id="chart-match"></canvas>
+          </article>
+
+          <article class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3>QBER Distribution Across Trials</h3>
+                <p>Observed error rate per trial with 11% Shor-Preskill security bound line</p>
+              </div>
+            </div>
+            <canvas id="chart-qber"></canvas>
+          </article>
+
+          <article class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3>Eve Interception vs. QBER Theoretical Curve</h3>
+                <p>Theoretical error rate <i>Q = p<sub>E</sub> / 4</i> under intercept-resend attack</p>
+              </div>
+            </div>
+            <canvas id="chart-eve"></canvas>
+          </article>
+        </div>
+
+        <!-- CLT STATISTICAL SUMMARY TABLE -->
+        <div class="stats-table-card">
+          <h3>Central Limit Theorem &amp; Higher-Order Moments</h3>
+          <table class="stats-table">
+            <thead>
+              <tr>
+                <th>Statistical Parameter</th>
+                <th>Empirical Value</th>
+                <th>Theoretical Expectation</th>
+                <th>Absolute Error</th>
+                <th>Standard Error (SE)</th>
+              </tr>
+            </thead>
+            <tbody id="clt-stats-tbody">
+              <tr><td colspan="5" class="empty-cell">Run Monte Carlo experiment to populate moments.</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div class="chart-grid">
-        <article class="chart-card">
-          <h3>Basis-match probability</h3>
-          <p>Observed versus theoretical probability</p>
-          <canvas id="chart-match"></canvas>
-        </article>
-        <article class="chart-card">
-          <h3>Sifted-key distribution</h3>
-          <p>Histogram of retained bits</p>
-          <canvas id="chart-histogram"></canvas>
-        </article>
-        <article class="chart-card">
-          <h3>QBER across trials</h3>
-          <p>Observed error rate per trial</p>
-          <canvas id="chart-qber"></canvas>
-        </article>
-        <article class="chart-card">
-          <h3>Interception probability</h3>
-          <p>Ideal intercept-resend QBER is approximately p/4.</p>
-          <canvas id="chart-eve"></canvas>
-        </article>
+      <!-- TAB 2: STOCHASTIC PROCESSES & RANDOM WALK -->
+      <div id="ana-stochastic-tab" class="ana-tab-content">
+        <div class="chart-grid single-col-grid">
+          <article class="chart-card large-chart-card">
+            <div class="chart-header">
+              <div>
+                <h3>Stochastic Sample Path: Basis-Match Martingale Random Walk</h3>
+                <p>Centered cumulative sum <i>S<sub>n</sub> = &sum; (X<sub>i</sub> - 0.5)</i> with &plusmn;2&sigma; and &plusmn;3&sigma; Brownian diffusion bounds</p>
+              </div>
+              <span class="martingale-badge">E[S<sub>n</sub>] = 0</span>
+            </div>
+            <canvas id="chart-random-walk" style="height: 270px;"></canvas>
+          </article>
+
+          <article class="chart-card large-chart-card">
+            <div class="chart-header">
+              <div>
+                <h3>Strong Law of Large Numbers (SLLN) Convergence Path</h3>
+                <p>Running sample mean <i>X̄<sub>n</sub> &rarr; 0.5</i> with Chebychev confidence envelope <i>&plusmn; 3/&radic;n</i></p>
+              </div>
+              <span class="slln-badge">X̄<sub>n</sub> &rarr;<sup>a.s.</sup> 0.5</span>
+            </div>
+            <canvas id="chart-slln" style="height: 270px;"></canvas>
+          </article>
+        </div>
+
+        <!-- MARKOV CHAIN TRANSITION GRAPH -->
+        <div class="markov-card">
+          <h3>Quantum State Stochastic Transition Matrix</h3>
+          <p class="muted">
+            The BB84 channel is modeled as a discrete-time Markov transition system between Alice's prepared states and Bob's detection states.
+          </p>
+          <div class="markov-flex">
+            <div class="matrix-box">
+              <h4>Transition Matrix P(Bob=j | Alice=i, Eve=OFF)</h4>
+              <table class="matrix-table">
+                <tr><th></th><th>|0&rang;</th><th>|1&rang;</th><th>|+&rang;</th><th>|-&rang;</th></tr>
+                <tr><th>|0&rang;</th><td>1.0</td><td>0.0</td><td>0.5</td><td>0.5</td></tr>
+                <tr><th>|1&rang;</th><td>0.0</td><td>1.0</td><td>0.5</td><td>0.5</td></tr>
+                <tr><th>|+&rang;</th><td>0.5</td><td>0.5</td><td>1.0</td><td>0.0</td></tr>
+                <tr><th>|-&rang;</th><td>0.5</td><td>0.5</td><td>0.0</td><td>1.0</td></tr>
+              </table>
+            </div>
+
+            <div class="matrix-box">
+              <h4>Transition Matrix P(Bob=j | Alice=i, Eve=100% Intercept)</h4>
+              <table class="matrix-table">
+                <tr><th></th><th>|0&rang;</th><th>|1&rang;</th><th>|+&rang;</th><th>|-&rang;</th></tr>
+                <tr><th>|0&rang;</th><td>0.75</td><td>0.25</td><td>0.50</td><td>0.50</td></tr>
+                <tr><th>|1&rang;</th><td>0.25</td><td>0.75</td><td>0.50</td><td>0.50</td></tr>
+                <tr><th>|+&rang;</th><td>0.50</td><td>0.50</td><td>0.75</td><td>0.25</td></tr>
+                <tr><th>|-&rang;</th><td>0.50</td><td>0.50</td><td>0.25</td><td>0.75</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="formula-grid">
-        <div><strong>Basis match</strong><code>P(M) = 1/2</code></div>
-        <div><strong>Sifted length</strong><code>K ~ Binomial(N, 1/2)</code></div>
-        <div><strong>Expected length</strong><code>E[K] = N/2</code></div>
-        <div><strong>Variance</strong><code>Var(K) = N/4</code></div>
-        <div><strong>Ideal QBER</strong><code>Q ≈ p(Eve)/4</code></div>
+      <!-- TAB 3: BAYES & CONDITIONAL PROBABILITY -->
+      <div id="ana-bayes-tab" class="ana-tab-content">
+        <div class="bayes-card">
+          <h3>Law of Total Probability &amp; QBER Derivation</h3>
+          <p>
+            Let <i>M</i> be the event that Alice and Bob choose matching bases: <i>B<sub>A</sub> = B<sub>B</sub></i>.
+            Let <i>E</i> be the event that Eve intercepts the photon, with <i>P(E) = p<sub>E</sub></i>.
+            Let <i>Err</i> be the event that Bob's detected bit differs from Alice's bit: <i>A<sub>i</sub> &ne; B<sub>i</sub></i>.
+          </p>
+
+          <div class="tree-diagram-box">
+            <div class="tree-node root-node">
+              <strong>Matching Bases: P(M) = 1/2</strong>
+              <div class="tree-branches">
+                <div class="tree-branch">
+                  <div class="branch-label">Eve intercepts: P(E) = p<sub>E</sub></div>
+                  <div class="tree-subbranches">
+                    <div class="tree-leaf">
+                      <strong>B<sub>E</sub> = B<sub>A</sub> (prob 1/2)</strong>
+                      <p>Eve measures correct basis. State undisturbed.</p>
+                      <code class="green-text">P(Err | B<sub>E</sub>=B<sub>A</sub>) = 0</code>
+                    </div>
+                    <div class="tree-leaf">
+                      <strong>B<sub>E</sub> &ne; B<sub>A</sub> (prob 1/2)</strong>
+                      <p>Eve collapses state to wrong basis. Bob gets 50/50 coin flip.</p>
+                      <code class="red-text">P(Err | B<sub>E</sub>&ne;B<sub>A</sub>) = 1/2</code>
+                    </div>
+                  </div>
+                  <div class="branch-summary">
+                    <strong>P(Err | E) = (1/2)&middot;0 + (1/2)&middot;(1/2) = 1/4 = 25%</strong>
+                  </div>
+                </div>
+
+                <div class="tree-branch">
+                  <div class="branch-label">No Eve: P(&not;E) = 1 - p<sub>E</sub></div>
+                  <div class="tree-leaf full-leaf">
+                    <p>Channel undisturbed (assuming noiseless fibre).</p>
+                    <code class="green-text">P(Err | &not;E) = &eta; (channel noise)</code>
+                  </div>
+                  <div class="branch-summary">
+                    <strong>P(Err | &not;E) = 0% (ideal)</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bayes-total-formula">
+            <h4>Total Probability Expansion:</h4>
+            <code>QBER = P(Err | M) = P(E)&middot;P(Err | M, E) + P(&not;E)&middot;P(Err | M, &not;E) = p<sub>E</sub>&middot;(1/4) + (1 - p<sub>E</sub>)&middot;&eta;</code>
+            <p>
+              When channel noise &eta; = 0: <strong>QBER = p<sub>E</sub> / 4</strong>. If Eve intercepts 100% of photons (<i>p<sub>E</sub> = 1</i>), <strong>QBER = 25%</strong>.
+            </p>
+          </div>
+        </div>
       </div>
 
+      <!-- TAB 4: SHANNON ENTROPY & KEY RATE -->
+      <div id="ana-shannon-tab" class="ana-tab-content">
+        <div class="chart-grid">
+          <article class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3>Shannon Binary Entropy Function <i>H<sub>2</sub>(p)</i></h3>
+                <p><i>H<sub>2</sub>(p) = -p log<sub>2</sub>(p) - (1-p) log<sub>2</sub>(1-p)</i></p>
+              </div>
+            </div>
+            <canvas id="chart-binary-entropy"></canvas>
+          </article>
+
+          <article class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3>Asymptotic Secret Key Rate <i>R = max(0, 1 - 2H<sub>2</sub>(Q))</i></h3>
+                <p>Shor-Preskill Security Bound: Key rate drops to 0 at <strong>Q = 11.0%</strong></p>
+              </div>
+              <span class="threshold-badge">11.0% Cutoff</span>
+            </div>
+            <canvas id="chart-key-rate"></canvas>
+          </article>
+        </div>
+
+        <div class="entropy-explanation-card">
+          <h3>Information Theoretic Security &amp; Csisz&aacute;r-K&ouml;rner Bound</h3>
+          <div class="entropy-grid">
+            <div class="entropy-item">
+              <strong>Alice-Bob Mutual Information</strong>
+              <code>I(A; B) = 1 - H<sub>2</sub>(Q)</code>
+              <p>Decreases as quantum error rate increases due to noise or eavesdropping.</p>
+            </div>
+            <div class="entropy-item">
+              <strong>Alice-Eve Information Leakage</strong>
+              <code>I(A; E) &le; H<sub>2</sub>(Q)</code>
+              <p>Under coherent quantum attacks, Eve's bound is constrained by Holevo quantity.</p>
+            </div>
+            <div class="entropy-item">
+              <strong>Distillable Secret Key Rate</strong>
+              <code>R = I(A; B) - I(A; E) = 1 - 2&middot;H<sub>2</sub>(Q)</code>
+              <p>At <i>Q &approx; 11.003%</i>, <i>2&middot;H<sub>2</sub>(0.11) &approx; 1.000</i>, so <i>R = 0</i>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 5: HYPOTHESIS TESTING ON QBER -->
+      <div id="ana-hypothesis-tab" class="ana-tab-content">
+        <div class="hypothesis-card">
+          <h3>Statistical Hypothesis Testing: Eavesdropper Detection</h3>
+          <p>
+            Alice and Bob test whether the channel is secure by drawing a random sample of <i>k</i> sifted bits and counting errors <i>E</i>.
+          </p>
+
+          <div class="hypo-setup-grid">
+            <div class="hypo-box">
+              <strong>Null Hypothesis (Safe Channel)</strong>
+              <code>H<sub>0</sub>: Q &le; 0.11</code>
+              <small>Errors are within acceptable channel tolerance. Keep key.</small>
+            </div>
+            <div class="hypo-box">
+              <strong>Alternative Hypothesis (Eve Present)</strong>
+              <code>H<sub>1</sub>: Q &gt; 0.11</code>
+              <small>Eavesdropper detected! Abort transmission and discard key.</small>
+            </div>
+          </div>
+
+          <div class="hypo-calc-box">
+            <h4>Live Test Evaluation on Current Simulation</h4>
+            <div class="hypo-metrics-grid">
+              <div><span>Sample Size (<i>k</i>)</span><strong id="hypo-sample-size">—</strong></div>
+              <div><span>Sample Errors (<i>E</i>)</span><strong id="hypo-errors">—</strong></div>
+              <div><span>Empirical QBER (<i>Q̂</i>)</span><strong id="hypo-qber">—</strong></div>
+              <div><span>Test Statistic (<i>Z</i>)</span><strong id="hypo-z">—</strong></div>
+              <div><span>p-value</span><strong id="hypo-p">—</strong></div>
+              <div><span>Decision (&alpha; = 0.05)</span><strong id="hypo-decision">—</strong></div>
+            </div>
+          </div>
+
+          <div class="error-types-grid">
+            <div class="error-type-card">
+              <strong>Type I Error (False Alarm, &alpha;)</strong>
+              <p>Rejecting a safe channel when Eve is absent (due to statistical noise fluctuation).</p>
+            </div>
+            <div class="error-type-card">
+              <strong>Type II Error (Undetected Eve, &beta;)</strong>
+              <p>Failing to detect Eve when an eavesdropper is actively intercepting.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 6: MATHEMATICAL REFERENCE & THEOREMS -->
+      <div id="ana-theorems-tab" class="ana-tab-content">
+        <div class="theorems-container">
+          <article class="theorem-entry">
+            <h3>1. Uniform Independent Bernoulli Basis Selection</h3>
+            <p>
+              Alice's basis <i>B<sub>A</sub></i> and Bob's basis <i>B<sub>B</sub></i> are independent discrete random variables sampled uniformly:
+              <i>P(B<sub>A</sub> = +) = P(B<sub>A</sub> = &times;) = 1/2</i> and <i>P(B<sub>B</sub> = +) = P(B<sub>B</sub> = &times;) = 1/2</i>.
+            </p>
+            <code>P(B<sub>A</sub> = B<sub>B</sub>) = P(+, +) + P(&times;, &times;) = (1/2)&middot;(1/2) + (1/2)&middot;(1/2) = 1/2 = 0.5</code>
+          </article>
+
+          <article class="theorem-entry">
+            <h3>2. Sifted Key Length: Binomial Distribution &amp; Central Limit Theorem</h3>
+            <p>
+              For <i>N</i> transmitted photons, the number of matching basis events <i>K</i> is a sum of <i>N</i> independent Bernoulli(1/2) indicators:
+              <i>K = &sum;<sub>i=1</sub><sup>N</sup> I<sub>{B<sub>A,i</sub> = B<sub>B,i</sub>}</sub> ~ Binomial(N, 1/2)</i>.
+            </p>
+            <code>E[K] = N/2 &nbsp;&nbsp;|&nbsp;&nbsp; Var(K) = N/4 &nbsp;&nbsp;|&nbsp;&nbsp; &sigma; = &radic;N / 2</code>
+            <p>
+              By the Central Limit Theorem (CLT), as <i>N &rarr; &infin;</i>, the standardized variable <i>Z<sub>N</sub> = (K - N/2) / (&radic;N / 2)</i> converges in distribution to standard normal <i>N(0, 1)</i>.
+            </p>
+          </article>
+
+          <article class="theorem-entry">
+            <h3>3. Strong Law of Large Numbers (SLLN)</h3>
+            <p>
+              The sample average basis match <i>X̄<sub>n</sub> = (1/n) &sum;<sub>i=1</sub><sup>n</sup> X<sub>i</sub></i> converges almost surely (with probability 1) to its expectation:
+            </p>
+            <code>P( lim<sub>n&rarr;&infin;</sub> X̄<sub>n</sub> = 1/2 ) = 1</code>
+          </article>
+
+          <article class="theorem-entry">
+            <h3>4. Poisson Statistics for Attenuated Laser Pulses</h3>
+            <p>
+              Practical QKD single-photon sources use heavily attenuated coherent laser pulses. The photon number <i>n</i> per pulse follows a Poisson distribution with mean &mu;:
+            </p>
+            <code>P(n photons) = (&mu;<sup>n</sup> &middot; e<sup>-&mu;</sup>) / n!</code>
+            <p>
+              Multi-photon pulses (<i>n &ge; 2</i>) with probability <i>P(n &ge; 2) = 1 - e<sup>-&mu;</sup> - &mu;e<sup>-&mu;</sup></i> enable the <strong>Photon Number Splitting (PNS) attack</strong>.
+            </p>
+          </article>
+
+          <article class="theorem-entry">
+            <h3>5. Vernam One-Time Pad: Shannon Perfect Secrecy</h3>
+            <p>
+              Given plaintext message <i>M</i> and independent uniformly random quantum key <i>K</i> of identical length:
+              Ciphertext <i>C = M &oplus; K</i> achieves Shannon's definition of <strong>Perfect Secrecy</strong>:
+            </p>
+            <code>P(M = m | C = c) = P(M = m) &nbsp;&nbsp;&hArr;&nbsp;&nbsp; H(M | C) = H(M)</code>
+            <p>
+              Knowledge of the ciphertext reveals zero statistical information about the plaintext.
+            </p>
+          </article>
+        </div>
+      </div>
+
+      <!-- ANALYTICS MODAL FOOTER -->
       <div id="experiment-summary" class="result-banner">
-        Run an experiment to populate the graphs.
+        Run a Monte Carlo experiment to populate the analytical charts and metrics.
       </div>
 
       <div class="modal-footer">
-        <button id="download-report" class="secondary-btn">Download Report</button>
+        <button id="download-report" class="secondary-btn">Download Full HTML Report</button>
         <p class="fine-print">
-          The example 11% threshold is illustrative, not a complete security proof.
+          The 11.0% QBER threshold corresponds to the Shor-Preskill asymptotic proof of BB84 security.
         </p>
       </div>
     </div>
   </section>
 
+  <!-- MODAL 3: MESSAGE OTP ENCRYPTION INSPECTOR -->
+  <section id="inspect-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="inspect-title">
+    <div class="modal-card">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">ONE-TIME PAD MATHEMATICS</p>
+          <h2 id="inspect-title">Vernam Cipher Bitwise Inspector</h2>
+        </div>
+        <button class="icon-btn" data-close="inspect-modal" aria-label="Close">×</button>
+      </div>
+
+      <div class="inspect-body">
+        <div class="inspect-meta">
+          <div><span>Message Sender:</span> <strong id="insp-msg-sender">—</strong></div>
+          <div><span>Key Bits Consumed:</span> <strong id="insp-msg-bits">—</strong></div>
+          <div><span>Shannon Entropy H(M|C):</span> <strong class="green-text">H(M) [Perfect Secrecy]</strong></div>
+        </div>
+
+        <div class="bitwise-calc-card">
+          <h4>Bitwise XOR Stream Operation: <code>C<sub>i</sub> = P<sub>i</sub> &oplus; K<sub>i</sub></code></h4>
+          <div class="xor-table-wrap">
+            <table class="xor-table" id="xor-table">
+              <thead>
+                <tr>
+                  <th>Char</th>
+                  <th>Plaintext Bits (ASCII)</th>
+                  <th>Quantum Key Bits</th>
+                  <th>Ciphertext Bits (XOR)</th>
+                  <th>Decryption (C &oplus; K)</th>
+                </tr>
+              </thead>
+              <tbody id="xor-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="shannon-proof-card">
+          <strong>Why Eavesdropping on Ciphertext Fails:</strong>
+          <p>
+            Because every quantum key bit <i>K<sub>i</sub> ~ Bernoulli(0.5)</i> is purely random and independent,
+            for any plaintext bit <i>P<sub>i</sub></i> and any ciphertext bit <i>C<sub>i</sub></i>:
+            <code>P(C<sub>i</sub> = 1 | P<sub>i</sub> = 0) = P(K<sub>i</sub> = 1) = 1/2</code> and
+            <code>P(C<sub>i</sub> = 1 | P<sub>i</sub> = 1) = P(K<sub>i</sub> = 0) = 1/2</code>.
+            Hence, <i>P(C<sub>i</sub> | P<sub>i</sub>) = P(C<sub>i</sub>)</i>, proving statistical independence.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FIREBASE SDK v8 -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="script.js"></script>
