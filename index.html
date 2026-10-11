@@ -1,83 +1,166 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#07111f">
-  <title>Quantum Chat — BB84 PTRP</title>
+  <meta name="theme-color" content="#040914">
+  <title>Quantum Key Distribution &amp; PTRP Lab</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body class="login-body">
+  <div class="quantum-particles-bg" id="particles-bg"></div>
+
   <main class="login-card">
-    <div class="brand-mark">Q<span>+</span></div>
-    <p class="eyebrow">QUANTUM COMMUNICATION LAB</p>
-    <h1>Quantum Chat</h1>
+    <div class="brand-row">
+      <div class="brand-mark">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/>
+          <line x1="3.6" y1="9" x2="20.4" y2="9"/>
+          <line x1="3.6" y1="15" x2="20.4" y2="15"/>
+          <path d="M11.5 3a17 17 0 0 0 0 18"/>
+          <path d="M12.5 3a17 17 0 0 1 0 18"/>
+        </svg>
+      </div>
+      <div>
+        <p class="eyebrow">PTRP ACADEMIC PROJECT</p>
+        <h1>Quantum Lab</h1>
+      </div>
+    </div>
+
     <p class="muted">
-      BB84 Quantum Key Distribution simulation and Probability Theory
-      &amp; Random Processes experiments.
+      Interactive BB84 Quantum Key Distribution simulator paired with rigorous
+      <strong>Probability Theory &amp; Random Processes (PTRP)</strong> analytics, stochastic modeling, and live Vernam One-Time Pad encryption.
     </p>
 
     <form id="login-form">
-      <label for="display-name">Display name</label>
-      <input id="display-name" maxlength="32" placeholder="Enter your name" required>
+      <div class="form-group">
+        <label for="display-name">Researcher Name / Handle</label>
+        <input id="display-name" maxlength="32" placeholder="e.g., Alice, Bob, Dr. Shannon" required autocomplete="name">
+      </div>
 
-      <label for="login-role">Select role</label>
-      <select id="login-role">
-        <option value="Alice">Alice — Sender</option>
-        <option value="Bob">Bob — Receiver</option>
-      </select>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="login-role">Station Role</label>
+          <select id="login-role">
+            <option value="Alice">Alice · Quantum Transmitter</option>
+            <option value="Bob">Bob · Quantum Receiver</option>
+          </select>
+        </div>
 
-      <label for="login-room">Communication room</label>
-      <select id="login-room">
-        <option value="server_1">Server 1 — Alpha</option>
-        <option value="server_2">Server 2 — Beta</option>
-        <option value="server_3">Server 3 — Gamma</option>
-        <option value="server_4">Server 4 — Delta</option>
-        <option value="server_5">Server 5 — Epsilon</option>
-      </select>
+        <div class="form-group">
+          <label for="login-room">Quantum Channel Room</label>
+          <select id="login-room">
+            <option value="server_1">Server 1 · Alpha Channel</option>
+            <option value="server_2">Server 2 · Beta Channel</option>
+            <option value="server_3">Server 3 · Gamma Channel</option>
+            <option value="server_4">Server 4 · Delta Channel</option>
+            <option value="server_5">Server 5 · Epsilon Channel</option>
+          </select>
+        </div>
+      </div>
 
-      <button class="primary-btn full-width" type="submit">
-        Enter Quantum Lab ↗
+      <button class="primary-btn full-width enter-btn" type="submit">
+        <span>Enter Quantum Laboratory</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </button>
     </form>
 
-    <div class="feature-chips">
-      <span>BB84</span>
-      <span>Monte Carlo</span>
-      <span>Eve Attack</span>
-      <span>PTRP</span>
+    <div class="feature-pills">
+      <span title="Bernoulli basis choice, Central Limit Theorem for sifted key">🎲 Bernoulli &amp; CLT</span>
+      <span title="P(Bob Error | Eve) = 25% under conjugate basis measurement">📐 Bayes &amp; Total Probability</span>
+      <span title="Running average convergence via Strong Law of Large Numbers">📈 Martingales &amp; SLLN</span>
+      <span title="Asymptotic key rate R = 1 - 2H2(Q) with 11% threshold">🔐 Shannon Entropy &amp; OTP</span>
+      <span title="Live optical bench with wavepacket photon animation">⚛️ Optical Bench Visuals</span>
     </div>
 
-    <p class="fine-print">
-      Educational simulation only. Not suitable for confidential communication.
-    </p>
+    <div class="card-footer-info">
+      <div class="status-indicator">
+        <span class="status-dot connected"></span>
+        <span>Firebase Realtime Synchronized · Standalone Capable</span>
+      </div>
+      <p class="fine-print">
+        Educational demonstration platform modeling quantum stochastic processes, photon polarization, intercept-resend eavesdropping, and privacy amplification.
+      </p>
+    </div>
   </main>
 
   <script>
     const $ = id => document.getElementById(id);
 
-    $("display-name").value =
-      localStorage.getItem("quantum_name") || "";
-
-    $("login-role").value =
-      localStorage.getItem("quantum_role") || "Alice";
-
-    $("login-room").value =
-      localStorage.getItem("quantum_room") || "server_1";
+    $("display-name").value = localStorage.getItem("quantum_name") || "Alice";
+    $("login-role").value = localStorage.getItem("quantum_role") || "Alice";
+    $("login-room").value = localStorage.getItem("quantum_room") || "server_1";
 
     $("login-form").addEventListener("submit", event => {
       event.preventDefault();
-
-      const name = $("display-name").value.trim();
-      if (!name) return;
-
+      const name = $("display-name").value.trim() || "Researcher";
       localStorage.setItem("quantum_name", name.slice(0, 32));
       localStorage.setItem("quantum_role", $("login-role").value);
       localStorage.setItem("quantum_room", $("login-room").value);
-
       location.href = "chat.html";
     });
+
+    // Particle background animation
+    const canvas = document.createElement("canvas");
+    const container = $("particles-bg");
+    if (container) {
+      container.appendChild(canvas);
+      const ctx = canvas.getContext("2d");
+      let w, h, particles = [];
+      function resize() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+      }
+      window.addEventListener("resize", resize);
+      resize();
+
+      for (let i = 0; i < 40; i++) {
+        particles.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          vx: (Math.random() - 0.5) * 0.6,
+          vy: (Math.random() - 0.5) * 0.6,
+          radius: Math.random() * 2 + 1,
+          color: Math.random() > 0.5 ? "rgba(0, 229, 255, " : "rgba(0, 245, 160, "
+        });
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, w, h);
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.x < 0) p.x = w;
+          if (p.x > w) p.x = 0;
+          if (p.y < 0) p.y = h;
+          if (p.y > h) p.y = 0;
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fillStyle = p.color + "0.6)";
+          ctx.fill();
+
+          for (let j = i + 1; j < particles.length; j++) {
+            const p2 = particles[j];
+            const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+            if (dist < 110) {
+              ctx.beginPath();
+              ctx.moveTo(p.x, p.y);
+              ctx.lineTo(p2.x, p2.y);
+              ctx.strokeStyle = "rgba(0, 229, 255," + (0.15 * (1 - dist / 110)) + ")";
+              ctx.lineWidth = 0.8;
+              ctx.stroke();
+            }
+          }
+        }
+        requestAnimationFrame(animate);
+      }
+      animate();
+    }
   </script>
 </body>
 </html>
