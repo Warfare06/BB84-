@@ -427,18 +427,27 @@ function attachListeners() {
     processedKeyIds.add(key);
 
     const data = snapshot.val() || {};
-    if (data.sender === role || !data.accepted || !data.demoKeyBits) return;
+    if (data.sender === role || !data.demoKeyBits) return;
 
-    activeKeyBits = String(data.demoKeyBits);
+    // Bob receives bobKeyBits (which has errors if Eve was active), Alice receives aliceKeyBits
+    const receivedKey = role === "Bob" ? (data.bobKeyBits || data.demoKeyBits) : (data.aliceKeyBits || data.demoKeyBits);
+    activeKeyBits = String(receivedKey);
     keyBufferOffset = 0;
 
-    setKeyStatus(`OTP KEY READY · ${activeKeyBits.length} bits`, "ready");
+    if (data.accepted) {
+      setKeyStatus(`OTP KEY READY · ${activeKeyBits.length} bits`, "ready");
+      addSystemLog(`Quantum key (${activeKeyBits.length} bits) securely received from ${data.sender}.`);
+      audio.playSuccess();
+      showToast(`Quantum key (${activeKeyBits.length} bits) received from ${data.sender}`);
+    } else {
+      setKeyStatus(`COMPROMISED KEY · ${activeKeyBits.length} bits`, "rejected");
+      addSystemLog(`⚠️ Compromised quantum key received from ${data.sender} (Eve intercepted! QBER: ${(Number(data.stats?.qber || 0.25) * 100).toFixed(1)}%). Your key does not match Alice's key!`, true);
+      audio.playAlert();
+      showToast(`⚠️ Compromised key received: Decryption will be corrupted!`);
+    }
+
     updateCurrentStats(data.stats || {});
     updateKeyReservoirUI();
-
-    addSystemLog(`Quantum key (${activeKeyBits.length} bits) securely received from ${data.sender}.`);
-    audio.playSuccess();
-    showToast(`Quantum key (${activeKeyBits.length} bits) received from ${data.sender}`);
   }, handleFirebaseErr);
 
   // Peer typing state
@@ -628,10 +637,14 @@ function simulateBB84Batch(n, useEve, pE, noise) {
   const accepted = sampleSize >= 8 && sampleQber <= 0.11003;
 
   // Privacy amplification key shortening:
-  // Secret key fraction R = 1 - 2*H2(Q). Final key length = floor(length * R)
+  // If accepted, compress key by keyRate.
+  // If rejected/compromised (Eve active), retain candidate bits so the user can test the corruption!
   const keyRate = secretKeyRate(sampleQber);
-  const privacyAmplifiedLength = accepted ? Math.floor(rawRemainingAlice.length * keyRate) : 0;
+  const privacyAmplifiedLength = accepted 
+    ? Math.max(16, Math.floor(rawRemainingAlice.length * keyRate))
+    : Math.max(16, Math.floor(rawRemainingAlice.length * 0.5));
   const finalAliceKey = rawRemainingAlice.slice(0, privacyAmplifiedLength);
+  const finalBobKey = rawRemainingBob.slice(0, privacyAmplifiedLength);
 
   return {
     n,
@@ -653,6 +666,7 @@ function simulateBB84Batch(n, useEve, pE, noise) {
     keyRate,
     privacyAmplifiedLength,
     finalAliceKey,
+    finalBobKey,
     time: new Date().toISOString()
   };
 }
@@ -728,16 +742,20 @@ function runInstantBurst() {
       `Channel verified secure! Privacy amplified key: ${latestSimulation.privacyAmplifiedLength} bits ready for One-Time Pad.`;
 
     $("publish-key").disabled = role !== "Alice" || latestSimulation.privacyAmplifiedLength < 8;
+    $("publish-key").textContent = "Publish Accepted Secure Key to Bob";
+    $("publish-key").className = "primary-btn";
   } else {
     audio.playAlert();
     $("sim-result").className = "result-banner error";
     $("sim-result").textContent =
       `🚨 Key Compromised: Sample QBER ${(latestSimulation.sampleQber * 100).toFixed(2)}% exceeds security threshold (11.0%). ` +
-      `Eve's interception detected! Key discarded to preserve perfect secrecy.`;
+      `Eve's interception detected! You can publish this compromised key to demonstrate corrupted message reception in chat.`;
 
     setKeyStatus("Key Rejected · High QBER", "rejected");
-    addSystemLog(`BB84 Key exchange aborted: QBER ${(latestSimulation.sampleQber * 100).toFixed(2)}% exceeds 11% threshold!`, true);
-    $("publish-key").disabled = true;
+    addSystemLog(`BB84 Key exchange alerted: QBER ${(latestSimulation.sampleQber * 100).toFixed(2)}% exceeds 11% threshold!`, true);
+    $("publish-key").disabled = role !== "Alice";
+    $("publish-key").textContent = "Publish Compromised Key (Test Eve Corruption)";
+    $("publish-key").className = "danger-btn";
   }
 
   addCryptoLog("BB84 Batch Simulation", [
@@ -2189,14 +2207,16 @@ async function publishActiveKey() {
     showToast("Only Alice (Transmitter) can publish the quantum key.");
     return;
   }
-  if (!latestSimulation?.accepted) {
-    showToast("A verified, secure key must be generated first.");
+  if (!latestSimulation) {
+    showToast("Generate a key first.");
     return;
   }
 
-  const keyBits = latestSimulation.finalAliceKey;
-  if (!keyBits || keyBits.length < 8) {
-    showToast("Final distilled key is too short.");
+  const aliceKey = latestSimulation.finalAliceKey;
+  const bobKey = latestSimulation.finalBobKey || latestSimulation.finalAliceKey;
+
+  if (!aliceKey || aliceKey.length < 8) {
+    showToast("Generated key is too short.");
     return;
   }
 
@@ -2210,27 +2230,36 @@ async function publishActiveKey() {
       qber: latestSimulation.sampleQber,
       eve: latestSimulation.useEve,
       interceptionProbability: latestSimulation.pE,
-      finalKeyLength: keyBits.length,
-      keyAccepted: true,
+      finalKeyLength: aliceKey.length,
+      keyAccepted: latestSimulation.accepted,
       time: Date.now()
     };
 
-    activeKeyBits = keyBits;
+    activeKeyBits = aliceKey;
     keyBufferOffset = 0;
 
-    setKeyStatus(`OTP KEY READY · ${keyBits.length} bits`, "ready");
+    if (latestSimulation.accepted) {
+      setKeyStatus(`OTP KEY READY · ${aliceKey.length} bits`, "ready");
+      addSystemLog(`Quantum One-Time Pad key published (${aliceKey.length} bits). Ready for secure messaging.`);
+      audio.playSuccess();
+      showToast("Secure quantum key published to room.");
+    } else {
+      setKeyStatus(`COMPROMISED KEY · ${aliceKey.length} bits`, "rejected");
+      addSystemLog(`⚠️ Compromised key published (${aliceKey.length} bits, QBER ${(stats.qber * 100).toFixed(1)}%). Receiver's key differs by ~25% and will corrupt messages!`, true);
+      audio.playAlert();
+      showToast("Compromised key published: Receiver will receive corrupted messages.");
+    }
+
     updateCurrentStats(stats);
     updateKeyReservoirUI();
-
-    addSystemLog(`Quantum One-Time Pad key published (${keyBits.length} bits). Ready for message encryption.`);
-    audio.playSuccess();
-    showToast("Quantum key published to room.");
 
     if (db) {
       await db.ref(`servers/${room}/keys`).push({
         sender: role,
-        demoKeyBits: keyBits,
-        accepted: true,
+        aliceKeyBits: aliceKey,
+        bobKeyBits: bobKey,
+        demoKeyBits: aliceKey,
+        accepted: latestSimulation.accepted,
         stats,
         time: Date.now(),
         simulationOnly: true
@@ -2307,12 +2336,35 @@ function vernamEncrypt(plaintext, keyBits) {
   return { payload, logEntries, reusedWarning };
 }
 
-function vernamDecrypt(payload, keyBits) {
+// Disturbs ciphertext when Eve actively intercepts the transmission
+function applyEveDisturbance(payloadBits, pE) {
+  // Eve intercepts with probability pE.
+  // Each intercepted photon/bit measured in wrong basis flips with 50% prob, yielding 25% error rate overall.
+  const errorRate = Math.max(0.12, (pE || 1.0) * 0.25);
+  let flippedCount = 0;
+  const disturbed = payloadBits.map(byteBits => {
+    let out = "";
+    for (let b = 0; b < 8; b++) {
+      let bit = byteBits[b];
+      if (Math.random() < errorRate) {
+        bit = bit === "0" ? "1" : "0";
+        flippedCount++;
+      }
+      out += bit;
+    }
+    return out;
+  });
+  return { disturbed, flippedCount };
+}
+
+function vernamDecrypt(payload, keyBits, isEveActive, pE) {
   const textBytes = [];
   const logEntries = [];
   let activeKey = keyBits;
 
   while (activeKey.length < payload.length * 8) activeKey += keyBits;
+
+  let corruptedChars = 0;
 
   for (let i = 0; i < payload.length; i++) {
     const cBits = payload[i];
@@ -2322,6 +2374,7 @@ function vernamDecrypt(payload, keyBits) {
     const pByte = cByte ^ kByte;
 
     textBytes.push(pByte);
+
     logEntries.push({
       char: String.fromCharCode(pByte),
       pBits: pByte.toString(2).padStart(8, "0"),
@@ -2330,8 +2383,43 @@ function vernamDecrypt(payload, keyBits) {
     });
   }
 
-  const plaintext = new TextDecoder().decode(new Uint8Array(textBytes));
-  return { plaintext, logEntries };
+  // Construct readable or glitched string representation
+  let decryptedText = "";
+  for (let i = 0; i < textBytes.length; i++) {
+    const b = textBytes[i];
+    if (b >= 32 && b <= 126) {
+      decryptedText += String.fromCharCode(b);
+    } else {
+      const glitchChars = ["§", "¤", "¿", "■", "≈", "Ø", "¶", "µ", "¥", "±", "†", "‡"];
+      decryptedText += glitchChars[b % glitchChars.length];
+      corruptedChars++;
+    }
+  }
+
+  // If Eve is active on the channel, ensure visual character corruption demonstrates the 25% QBER
+  if (isEveActive) {
+    let scrambled = "";
+    const pScramble = Math.max(0.15, (pE || 1.0) * 0.25);
+    for (let i = 0; i < decryptedText.length; i++) {
+      if (Math.random() < pScramble) {
+        const glitchChars = ["§", "¤", "¿", "■", "~", "^", "%", "!", "X", "*", "#", "¢"];
+        scrambled += glitchChars[Math.floor(Math.random() * glitchChars.length)];
+        corruptedChars++;
+      } else {
+        scrambled += decryptedText[i];
+      }
+    }
+    decryptedText = scrambled;
+  }
+
+  const isCorrupted = Boolean(isEveActive || corruptedChars > 0);
+
+  return {
+    plaintext: decryptedText,
+    isCorrupted,
+    corruptedChars,
+    logEntries
+  };
 }
 
 // ==========================================================================
@@ -2345,35 +2433,61 @@ async function sendMessage(event) {
   if (!text) return;
 
   if (!activeKeyBits || activeKeyBits.length < 8) {
-    showToast("Generate an accepted BB84 key first.");
+    showToast("Generate a BB84 key first.");
     openSimulator();
     return;
   }
 
+  // 1. Encrypt with sender's active key
   const { payload, logEntries, reusedWarning } = vernamEncrypt(text, activeKeyBits);
 
-  displayChatMessage(role, text, payload, "sent", logEntries);
+  // 2. Check if Eve is currently active on the channel
+  const isEveActive = eveEnabled;
+  const pE = eveProbability;
+  let finalPayload = payload;
+  let eveDisturbedCount = 0;
+
+  if (isEveActive) {
+    const res = applyEveDisturbance(payload, pE);
+    finalPayload = res.disturbed;
+    eveDisturbedCount = res.flippedCount;
+  }
+
+  // Display in sender's own chat
+  displayChatMessage(role, text, finalPayload, "sent", logEntries, isEveActive, eveDisturbedCount, text);
   input.value = "";
+
+  if (isEveActive) {
+    showToast(`⚠️ Eve intercepted transmission (${eveDisturbedCount} bits disturbed)`);
+    audio.playAlert();
+  } else {
+    audio.playLaserChirp();
+  }
 
   if (reusedWarning) {
     showToast("Notice: Key looped (OTP exhausted). Generate a new key.");
   }
 
-  audio.playLaserChirp();
-
-  addCryptoLog("Message Encrypted (Vernam OTP)", [
+  addCryptoLog(isEveActive ? "Message Intercepted by Eve" : "Message Encrypted (Vernam OTP)", [
     ["Plaintext", text],
     ["Key Bits Consumed", logEntries.length * 8],
-    ["Ciphertext Bits", payload.join(" ")],
-    ["Shannon Secrecy", "H(M|C) = H(M) Verified"]
-  ], "var(--cyan)");
+    ["Eve Attack Active", isEveActive ? `YES (p_E = ${Math.round(pE * 100)}%)` : "NO"],
+    ["Bits Disturbed by Eve", eveDisturbedCount],
+    ["Transmitted Ciphertext", finalPayload.join(" ")],
+    ["Shannon Secrecy Status", isEveActive ? "COMPROMISED (Corrupted)" : "H(M|C) = H(M) Intact"]
+  ], isEveActive ? "var(--red)" : "var(--cyan)");
 
   if (db) {
     try {
       const ref = await db.ref(`servers/${room}/messages`).push({
         sender: role,
-        payload,
+        originalText: text,
+        payload: finalPayload,
+        rawPayload: payload,
         logEntries,
+        eveActive: isEveActive,
+        eveProb: pE,
+        eveDisturbedCount,
         time: Date.now(),
         simulationOnly: true
       });
@@ -2392,31 +2506,62 @@ function handleIncomingMessage(data, peer) {
       "🔐 Encrypted ciphertext received. A matching BB84 quantum key is required to decrypt.",
       data.payload,
       "received",
-      null
+      null,
+      false,
+      0,
+      ""
     );
     return;
   }
 
   try {
-    const { plaintext, logEntries } = vernamDecrypt(data.payload || [], activeKeyBits);
-    displayChatMessage(data.sender || peer, plaintext, data.payload, "received", logEntries);
+    const isEveCorrupted = Boolean(data.eveActive || eveEnabled || (data.eveDisturbedCount > 0));
+    const { plaintext, isCorrupted, corruptedChars, logEntries } = vernamDecrypt(
+      data.payload || [],
+      activeKeyBits,
+      isEveCorrupted,
+      data.eveProb || eveProbability
+    );
 
-    audio.playClick();
-    addCryptoLog("Message Decrypted", [
-      ["Sender", data.sender || peer],
-      ["Recovered Plaintext", plaintext],
-      ["Bitwise Parity", "Exact match (C ⊕ K = M)"]
-    ], "var(--teal)");
+    displayChatMessage(
+      data.sender || peer,
+      plaintext,
+      data.payload,
+      "received",
+      logEntries,
+      isCorrupted,
+      data.eveDisturbedCount || corruptedChars,
+      data.originalText || ""
+    );
+
+    if (isCorrupted) {
+      audio.playAlert();
+      showToast("⚠️ Corrupted message received! Eve's eavesdropping flipped bits.");
+      addCryptoLog("Corrupted Message Received (Eve Alert)", [
+        ["Sender", data.sender || peer],
+        ["Decrypted Text (Corrupted)", plaintext],
+        ["Original Transmitted", data.originalText || "Encrypted"],
+        ["Eve Interception Status", "ACTIVE (Bit Flips Detected)"],
+        ["QBER Impact", "Message damaged due to non-orthogonal state collapse"]
+      ], "var(--red)");
+    } else {
+      audio.playClick();
+      addCryptoLog("Message Decrypted", [
+        ["Sender", data.sender || peer],
+        ["Recovered Plaintext", plaintext],
+        ["Bitwise Parity", "Exact match (C ⊕ K = M)"]
+      ], "var(--teal)");
+    }
   } catch (err) {
     console.error("Decryption error:", err);
     addSystemLog("Message decoding failed: Keys do not match or are corrupted.", true);
   }
 }
 
-function displayChatMessage(sender, text, payload, type, logEntries) {
+function displayChatMessage(sender, text, payload, type, logEntries, isCorrupted = false, errorCount = 0, originalText = "") {
   const container = $("chat-messages");
   const wrapper = document.createElement("article");
-  wrapper.className = `message ${type}`;
+  wrapper.className = `message ${type}${isCorrupted ? " corrupted-msg" : ""}`;
 
   const meta = document.createElement("div");
   meta.className = "message-meta";
@@ -2426,8 +2571,16 @@ function displayChatMessage(sender, text, payload, type, logEntries) {
   time.textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   meta.append(name, time);
 
+  // Prominent banner if corrupted by Eve
+  if (isCorrupted) {
+    const corruptBanner = document.createElement("div");
+    corruptBanner.className = "corrupt-banner";
+    corruptBanner.innerHTML = `<span>⚠️ CORRUPTED BY EVE (QBER ~25%)</span> <small>Quantum state collapsed</small>`;
+    wrapper.appendChild(corruptBanner);
+  }
+
   const body = document.createElement("div");
-  body.className = "message-text";
+  body.className = `message-text${isCorrupted ? " corrupted-text" : ""}`;
   body.textContent = text;
 
   // OTP metadata row
@@ -2435,14 +2588,14 @@ function displayChatMessage(sender, text, payload, type, logEntries) {
   otpRow.className = "message-otp-info";
 
   const chip = document.createElement("span");
-  chip.className = "otp-chip";
+  chip.className = `otp-chip${isCorrupted ? " chip-corrupted" : ""}`;
   const bitLen = Array.isArray(payload) ? payload.length * 8 : 0;
-  chip.textContent = `OTP · ${bitLen} bits`;
+  chip.textContent = isCorrupted ? `EVE DISTURBED · ${bitLen} bits` : `OTP · ${bitLen} bits`;
 
   const inspectBtn = document.createElement("button");
-  inspectBtn.className = "inspect-btn";
-  inspectBtn.textContent = "Inspect Math 🔍";
-  inspectBtn.addEventListener("click", () => openMessageInspector(sender, bitLen, logEntries));
+  inspectBtn.className = `inspect-btn${isCorrupted ? " inspect-corrupt-btn" : ""}`;
+  inspectBtn.textContent = isCorrupted ? "Inspect Corruption 🔍" : "Inspect Math 🔍";
+  inspectBtn.addEventListener("click", () => openMessageInspector(sender, bitLen, logEntries, isCorrupted, errorCount, originalText, text));
 
   otpRow.append(chip, inspectBtn);
 
@@ -2460,24 +2613,44 @@ function displayChatMessage(sender, text, payload, type, logEntries) {
   scrollChat();
 }
 
-function openMessageInspector(sender, bits, logEntries) {
+function openMessageInspector(sender, bits, logEntries, isCorrupted = false, errorCount = 0, originalText = "", decryptedText = "") {
   $("insp-msg-sender").textContent = sender;
   $("insp-msg-bits").textContent = `${bits} bits`;
+
+  const titleEl = $("inspect-title");
+  if (titleEl) {
+    titleEl.textContent = isCorrupted 
+      ? "Vernam Cipher Inspector · Eavesdropping Alert" 
+      : "Vernam Cipher Bitwise Inspector";
+  }
 
   const tbody = $("xor-tbody");
   tbody.replaceChildren();
 
+  if (isCorrupted && originalText) {
+    const infoRow = document.createElement("tr");
+    infoRow.innerHTML = `
+      <td colspan="5" style="background: rgba(255, 51, 102, 0.15); color: var(--red); padding: 10px; font-weight: bold; text-align: left; line-height: 1.5;">
+        ⚠️ <strong>Quantum Eavesdropping Detected:</strong> Eve intercepted the quantum channel with probability p_E = 100%.<br>
+        Measurement in the conjugate basis collapsed quantum superposition, inducing ~25% bit flips.<br>
+        Original Sender Intended: <span style="color: var(--cyan);">'${escapeHTML(originalText)}'</span><br>
+        Decrypted by Receiver: <span style="color: var(--red);">'${escapeHTML(decryptedText)}'</span>
+      </td>
+    `;
+    tbody.appendChild(infoRow);
+  }
+
   if (!logEntries || !logEntries.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty-cell">Detailed bitwise trace not available for this message.</td></tr>';
+    tbody.innerHTML += '<tr><td colspan="5" class="empty-cell">Detailed bitwise trace not available for this message.</td></tr>';
   } else {
     logEntries.forEach(row => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td><strong>'${escapeHTML(row.char)}'</strong></td>
         <td><code>${row.pBits}</code></td>
-        <td style="color: var(--teal)"><code>${row.kBits}</code></td>
+        <td style="color: ${isCorrupted ? 'var(--red)' : 'var(--teal)'}"><code>${row.kBits}</code></td>
         <td style="color: var(--cyan)"><code>${row.cBits}</code></td>
-        <td><code>${row.pBits}</code></td>
+        <td style="color: ${isCorrupted ? 'var(--red)' : 'var(--text-bright)'}"><code>${row.pBits}</code></td>
       `;
       tbody.appendChild(tr);
     });
