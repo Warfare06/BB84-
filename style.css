@@ -1515,3 +1515,58 @@ label {
     box-shadow: -20px 0 50px rgba(0, 0, 0, 0.8);
   }
 }
+
+/* EVE CORRUPTED MESSAGE STYLES */
+.message.corrupted-msg {
+  border: 1px dashed var(--red) !important;
+  background: rgba(43, 14, 24, 0.9) !important;
+  box-shadow: 0 0 16px rgba(255, 51, 102, 0.25) !important;
+  animation: pulse-corrupt 3s infinite ease-in-out;
+}
+
+@keyframes pulse-corrupt {
+  0%, 100% { box-shadow: 0 0 12px rgba(255, 51, 102, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(255, 51, 102, 0.4); }
+}
+
+.corrupt-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 51, 102, 0.18);
+  border: 1px solid rgba(255, 51, 102, 0.4);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  color: var(--red);
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.corrupt-banner small {
+  color: #ffb8c5;
+  font-weight: 500;
+}
+
+.corrupted-text {
+  color: #ff99aa !important;
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 8px rgba(255, 51, 102, 0.4);
+  background: rgba(255, 51, 102, 0.08);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.chip-corrupted {
+  background: rgba(255, 51, 102, 0.15) !important;
+  color: var(--red) !important;
+  border-color: rgba(255, 51, 102, 0.4) !important;
+}
+
+.inspect-corrupt-btn {
+  color: var(--red) !important;
+  font-weight: 700;
+}
+.inspect-corrupt-btn:hover {
+  background: rgba(255, 51, 102, 0.15) !important;
+}
