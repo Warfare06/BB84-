@@ -372,25 +372,37 @@ function clearLogs() {
    FIREBASE REALTIME SYNCHRONIZATION
    ========================================================================== */
 function connectFirebase() {
-  try {
-    if (!window.firebase) throw new Error("Firebase SDK script not loaded.");
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const status = $("connection-state");
+  const dot = $("connection-dot");
 
+  try {
+    if (!window.firebase) {
+      throw new Error("Firebase SDK did not load. Check internet access and the Firebase script URLs.");
+    }
+
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     db = firebase.database();
+
+    // Show a useful state instead of claiming the database is connected before it is.
+    status.textContent = "Connecting to Firebase…";
+    dot.classList.remove("connected");
+
     db.ref(".info/connected").on("value", snapshot => {
       const connected = snapshot.val() === true;
-      $("connection-state").textContent = connected ? "Firebase Synchronized" : "Connecting…";
-      $("connection-dot").classList.toggle("connected", connected);
-    });
+      status.textContent = connected ? "Firebase Connected" : "Firebase Disconnected";
+      dot.classList.toggle("connected", connected);
+      if (connected) {
+        addSystemLog("Connected to Firebase Realtime Database.");
+      }
+    }, error => handleFirebaseErr(error));
 
     attachListeners();
-    addSystemLog("Quantum Network online. Ready for BB84 photon exchange.");
   } catch (error) {
-    console.warn("Firebase offline/standalone mode:", error);
-    $("connection-state").textContent = "Standalone Mode (Offline)";
-    $("connection-dot").classList.remove("connected");
-    showToast("Operating in standalone simulation mode.");
-    addSystemLog("Operating in local standalone mode. Simulation is fully functional.");
+    console.error("Firebase initialization failed:", error);
+    status.textContent = "Firebase Error — see Console";
+    dot.classList.remove("connected");
+    showToast("Firebase failed to initialize. Open DevTools Console for details.");
+    addSystemLog("Firebase initialization failed: " + (error.message || error), true);
   }
 }
 
@@ -481,7 +493,24 @@ function attachListeners() {
 }
 
 function handleFirebaseErr(err) {
-  console.warn("Firebase listener notice:", err);
+  const code = err && err.code ? err.code : "unknown";
+  const message = err && err.message ? err.message : String(err || "Unknown Firebase error");
+  console.error("Firebase Realtime Database error:", code, message, err);
+
+  const status = $("connection-state");
+  if (status) {
+    if (code === "PERMISSION_DENIED" || /permission_denied/i.test(message)) {
+      status.textContent = "Firebase Permission Denied";
+    } else {
+      status.textContent = "Firebase Error — see Console";
+    }
+  }
+
+  if (code === "PERMISSION_DENIED" || /permission_denied/i.test(message)) {
+    showToast("Firebase denied access. Check Realtime Database Rules.");
+  } else {
+    showToast("Firebase error: " + message);
+  }
 }
 
 // ==========================================================================
