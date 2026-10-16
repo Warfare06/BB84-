@@ -308,7 +308,8 @@ function initApp() {
   // Canvas setup
   setupChannelCanvas();
   $("open-antenna-sim")?.addEventListener("click", openAntennaSimModal);
-  setupAntennaSimulation();
+  // Optional antenna controls are initialized only if their setup function exists.
+  if (typeof setupAntennaSimulation === "function") setupAntennaSimulation();
 
   updateRoomTitle();
   updateEveUI();
@@ -734,15 +735,19 @@ function selectRandomSample(indexes, fraction = 0.25) {
 // ==========================================================================
 // SIMULATOR UI & ACTIONS
 // ==========================================================================
+// Open the parabolic-dish simulation modal.
 function openAntennaSimModal() {
-  const modal = document.getElementById("antenna-sim-modal");
-
+  const modal = $("antenna-sim-modal");
   if (!modal) {
-    console.error("Antenna simulation modal not found.");
+    console.error('Antenna simulation modal "#antenna-sim-modal" was not found.');
+    showToast("Antenna simulation panel is missing from chat.html.");
     return;
   }
-
   modal.classList.add("open");
+  if (typeof setupAntennaSimulation === "function") {
+    // Optional antenna controls are initialized only if their setup function exists.
+  if (typeof setupAntennaSimulation === "function") setupAntennaSimulation();
+  }
 }
 
 function openSimulator() {
