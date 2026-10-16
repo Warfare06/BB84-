@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#040914">
   <title>BB84 Quantum Key Distribution &amp; PTRP Lab</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -550,448 +551,62 @@
       <div class="modal-heading">
         <div>
           <p class="eyebrow">PROBABILITY THEORY &amp; RANDOM PROCESSES (PTRP)</p>
-          <h2 id="analytics-title">Stochastic Modeling &amp; Analytics Dashboard</h2>
+          <h2 id="analytics-title">QBER Error Percentage Calculator</h2>
         </div>
         <button class="icon-btn" data-close="analytics-modal" aria-label="Close">×</button>
       </div>
 
-      <!-- ANALYTICS TABS -->
-      <nav class="tab-nav">
-        <button class="tab-btn active" data-ana-tab="clt-tab">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="5" width="3" height="13"/><rect x="17" y="12" width="3" height="6"/></svg>
-          <span>Monte Carlo &amp; CLT Distribution</span>
-        </button>
-        <button class="tab-btn" data-ana-tab="stochastic-tab">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          <span>Random Walk &amp; Martingale Paths</span>
-        </button>
-        <button class="tab-btn" data-ana-tab="bayes-tab">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><path d="m7 17 3.5-9.5"/><path d="m17 17-3.5-9.5"/></svg>
-          <span>Bayes &amp; Total Probability</span>
-        </button>
-        <button class="tab-btn" data-ana-tab="shannon-tab">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="7"/></svg>
-          <span>Shannon Entropy &amp; Key Rate</span>
-        </button>
-        <button class="tab-btn" data-ana-tab="hypothesis-tab">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
-          <span>Hypothesis Testing on QBER</span>
-        </button>
-        <button class="tab-btn" data-ana-tab="theorems-tab">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10"/></svg>
-          <span>PTRP Mathematical Theorems</span>
+      <!-- QBER ERROR-PERCENTAGE CALCULATOR ONLY -->
+      <nav class="tab-nav" aria-label="Analytics tabs">
+        <button class="tab-btn active" data-ana-tab="error-tab" type="button">
+          <span>Error Percentage &amp; Threshold</span>
         </button>
       </nav>
 
-      <!-- ANALYTICS CONTROLS BAR -->
-      <div class="analytics-controls">
-        <label>
-          <span>Monte Carlo Trials (<i>M</i>)</span>
-          <select id="trial-count">
-            <option value="100">100 trials</option>
-            <option value="500" selected>500 trials</option>
-            <option value="1000">1,000 trials</option>
-            <option value="2500">2,500 trials</option>
-            <option value="5000">5,000 trials</option>
-          </select>
-        </label>
-
-        <label>
-          <span>Photons / Trial (<i>N</i>)</span>
-          <select id="mc-photons">
-            <option value="64">64</option>
-            <option value="128" selected>128</option>
-            <option value="256">256</option>
-            <option value="512">512</option>
-          </select>
-        </label>
-
-        <label class="inline-check">
-          <input id="mc-eve" type="checkbox">
-          <span>Include Eve Attack</span>
-        </label>
-
-        <label id="mc-eve-prob-wrap" style="display: none;">
-          <span>Eve <i>p<sub>E</sub></i></span>
-          <select id="mc-eve-prob">
-            <option value="0.25">25% Intercept</option>
-            <option value="0.5">50% Intercept</option>
-            <option value="0.75">75% Intercept</option>
-            <option value="1.0" selected>100% Intercept</option>
-          </select>
-        </label>
-
-        <button id="run-monte-carlo" class="primary-btn">
-          <span>Run Monte Carlo Experiment</span>
-        </button>
-      </div>
-
-      <!-- TAB 1: CLT & DISTRIBUTION -->
-      <div id="ana-clt-tab" class="ana-tab-content active">
-        <div class="analytics-grid">
-          <article class="metric-card">
-            <span>Empirical P(Match)</span>
-            <strong id="metric-match">—</strong>
-            <small>Theory: 0.5000 (Bernoulli)</small>
-          </article>
-          <article class="metric-card">
-            <span>Mean Sifted Length <i>E[K]</i></span>
-            <strong id="metric-mean">—</strong>
-            <small id="metric-mean-theory">Theory: N/2</small>
-          </article>
-          <article class="metric-card">
-            <span>Variance <i>Var(K)</i></span>
-            <strong id="metric-variance">—</strong>
-            <small id="metric-var-theory">Theory: N/4</small>
-          </article>
-          <article class="metric-card">
-            <span>Empirical QBER <i>Q̂</i></span>
-            <strong id="metric-qber">—</strong>
-            <small id="metric-qber-note">Theory: p<sub>E</sub>/4</small>
-          </article>
-        </div>
-
-        <div class="chart-grid">
-          <article class="chart-card">
-            <div class="chart-header">
-              <div>
-                <h3>Sifted Key Length <i>K ~ Binomial(N, 1/2)</i></h3>
-                <p>Histogram with overlaid theoretical Gaussian PDF <i>N(&mu;=N/2, &sigma;<sup>2</sup>=N/4)</i></p>
-              </div>
-              <span class="clt-badge">CLT Validated</span>
-            </div>
-            <canvas id="chart-histogram"></canvas>
-          </article>
-
-          <article class="chart-card">
-            <div class="chart-header">
-              <div>
-                <h3>Empirical Basis-Match Probability</h3>
-                <p>Observed sample proportion vs. theoretical 0.5 with CLT 95% error margin</p>
-              </div>
-            </div>
-            <canvas id="chart-match"></canvas>
-          </article>
-
-          <article class="chart-card">
-            <div class="chart-header">
-              <div>
-                <h3>QBER Distribution Across Trials</h3>
-                <p>Observed error rate per trial with 11% Shor-Preskill security bound line</p>
-              </div>
-            </div>
-            <canvas id="chart-qber"></canvas>
-          </article>
-
-          <article class="chart-card">
-            <div class="chart-header">
-              <div>
-                <h3>Eve Interception vs. QBER Theoretical Curve</h3>
-                <p>Theoretical error rate <i>Q = p<sub>E</sub> / 4</i> under intercept-resend attack</p>
-              </div>
-            </div>
-            <canvas id="chart-eve"></canvas>
-          </article>
-        </div>
-
-        <!-- CLT STATISTICAL SUMMARY TABLE -->
-        <div class="stats-table-card">
-          <h3>Central Limit Theorem &amp; Higher-Order Moments</h3>
-          <table class="stats-table">
-            <thead>
-              <tr>
-                <th>Statistical Parameter</th>
-                <th>Empirical Value</th>
-                <th>Theoretical Expectation</th>
-                <th>Absolute Error</th>
-                <th>Standard Error (SE)</th>
-              </tr>
-            </thead>
-            <tbody id="clt-stats-tbody">
-              <tr><td colspan="5" class="empty-cell">Run Monte Carlo experiment to populate moments.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- TAB 2: STOCHASTIC PROCESSES & RANDOM WALK -->
-      <div id="ana-stochastic-tab" class="ana-tab-content">
-        <div class="chart-grid single-col-grid">
-          <article class="chart-card large-chart-card">
-            <div class="chart-header">
-              <div>
-                <h3>Stochastic Sample Path: Basis-Match Martingale Random Walk</h3>
-                <p>Centered cumulative sum <i>S<sub>n</sub> = &sum; (X<sub>i</sub> - 0.5)</i> with &plusmn;2&sigma; and &plusmn;3&sigma; Brownian diffusion bounds</p>
-              </div>
-              <span class="martingale-badge">E[S<sub>n</sub>] = 0</span>
-            </div>
-            <canvas id="chart-random-walk" style="height: 270px;"></canvas>
-          </article>
-
-          <article class="chart-card large-chart-card">
-            <div class="chart-header">
-              <div>
-                <h3>Strong Law of Large Numbers (SLLN) Convergence Path</h3>
-                <p>Running sample mean <i>X̄<sub>n</sub> &rarr; 0.5</i> with Chebychev confidence envelope <i>&plusmn; 3/&radic;n</i></p>
-              </div>
-              <span class="slln-badge">X̄<sub>n</sub> &rarr;<sup>a.s.</sup> 0.5</span>
-            </div>
-            <canvas id="chart-slln" style="height: 270px;"></canvas>
-          </article>
-        </div>
-
-        <!-- MARKOV CHAIN TRANSITION GRAPH -->
-        <div class="markov-card">
-          <h3>Quantum State Stochastic Transition Matrix</h3>
-          <p class="muted">
-            The BB84 channel is modeled as a discrete-time Markov transition system between Alice's prepared states and Bob's detection states.
-          </p>
-          <div class="markov-flex">
-            <div class="matrix-box">
-              <h4>Transition Matrix P(Bob=j | Alice=i, Eve=OFF)</h4>
-              <table class="matrix-table">
-                <tr><th></th><th>|0&rang;</th><th>|1&rang;</th><th>|+&rang;</th><th>|-&rang;</th></tr>
-                <tr><th>|0&rang;</th><td>1.0</td><td>0.0</td><td>0.5</td><td>0.5</td></tr>
-                <tr><th>|1&rang;</th><td>0.0</td><td>1.0</td><td>0.5</td><td>0.5</td></tr>
-                <tr><th>|+&rang;</th><td>0.5</td><td>0.5</td><td>1.0</td><td>0.0</td></tr>
-                <tr><th>|-&rang;</th><td>0.5</td><td>0.5</td><td>0.0</td><td>1.0</td></tr>
-              </table>
-            </div>
-
-            <div class="matrix-box">
-              <h4>Transition Matrix P(Bob=j | Alice=i, Eve=100% Intercept)</h4>
-              <table class="matrix-table">
-                <tr><th></th><th>|0&rang;</th><th>|1&rang;</th><th>|+&rang;</th><th>|-&rang;</th></tr>
-                <tr><th>|0&rang;</th><td>0.75</td><td>0.25</td><td>0.50</td><td>0.50</td></tr>
-                <tr><th>|1&rang;</th><td>0.25</td><td>0.75</td><td>0.50</td><td>0.50</td></tr>
-                <tr><th>|+&rang;</th><td>0.50</td><td>0.50</td><td>0.75</td><td>0.25</td></tr>
-                <tr><th>|-&rang;</th><td>0.50</td><td>0.50</td><td>0.25</td><td>0.75</td></tr>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB 3: BAYES & CONDITIONAL PROBABILITY -->
-      <div id="ana-bayes-tab" class="ana-tab-content">
+      <section id="ana-error-tab" class="ana-tab-content active">
         <div class="bayes-card">
-          <h3>Law of Total Probability &amp; QBER Derivation</h3>
-          <p>
-            Let <i>M</i> be the event that Alice and Bob choose matching bases: <i>B<sub>A</sub> = B<sub>B</sub></i>.
-            Let <i>E</i> be the event that Eve intercepts the photon, with <i>P(E) = p<sub>E</sub></i>.
-            Let <i>Err</i> be the event that Bob's detected bit differs from Alice's bit: <i>A<sub>i</sub> &ne; B<sub>i</sub></i>.
+          <h3>Quantum Bit Error Rate (QBER) Calculator</h3>
+          <p>Enter the number of sifted bits checked and the number of incorrect bits found in the sample.</p>
+
+          <div class="analytics-controls" style="margin-top:16px;">
+            <label>
+              <span>Total sifted bits checked (N)</span>
+              <input id="qber-total-bits" type="number" min="1" step="1" value="100" inputmode="numeric">
+            </label>
+            <label>
+              <span>Incorrect bits / errors (E)</span>
+              <input id="qber-error-bits" type="number" min="0" step="1" value="5" inputmode="numeric">
+            </label>
+            <button id="calculate-qber" class="primary-btn" type="button">Calculate Error Percentage</button>
+          </div>
+
+          <div class="analytics-grid" style="margin-top:16px;">
+            <article class="metric-card">
+              <span>Error Percentage (QBER)</span>
+              <strong id="qber-result">5.00%</strong>
+              <small>QBER = (Errors ÷ Bits checked) × 100</small>
+            </article>
+            <article class="metric-card">
+              <span>Threshold Error Percentage</span>
+              <strong id="qber-threshold">11.00%</strong>
+              <small>BB84 illustrative threshold</small>
+            </article>
+            <article class="metric-card">
+              <span>Comparison</span>
+              <strong id="qber-decision">Below threshold</strong>
+              <small id="qber-decision-detail">6.00 percentage points below threshold.</small>
+            </article>
+          </div>
+
+          <div id="qber-calculation-steps" class="result-banner success" style="margin-top:16px;">
+            QBER = (5 ÷ 100) × 100 = 5.00%. This is below the 11.00% threshold.
+          </div>
+          <p class="muted" style="margin-top:12px;">
+            Note: This is a simple sample-error comparison for demonstration. A real BB84 implementation must use a properly selected test sample and protocol-specific security checks before accepting a key.
           </p>
-
-          <div class="tree-diagram-box">
-            <div class="tree-node root-node">
-              <strong>Matching Bases: P(M) = 1/2</strong>
-              <div class="tree-branches">
-                <div class="tree-branch">
-                  <div class="branch-label">Eve intercepts: P(E) = p<sub>E</sub></div>
-                  <div class="tree-subbranches">
-                    <div class="tree-leaf">
-                      <strong>B<sub>E</sub> = B<sub>A</sub> (prob 1/2)</strong>
-                      <p>Eve measures correct basis. State undisturbed.</p>
-                      <code class="green-text">P(Err | B<sub>E</sub>=B<sub>A</sub>) = 0</code>
-                    </div>
-                    <div class="tree-leaf">
-                      <strong>B<sub>E</sub> &ne; B<sub>A</sub> (prob 1/2)</strong>
-                      <p>Eve collapses state to wrong basis. Bob gets 50/50 coin flip.</p>
-                      <code class="red-text">P(Err | B<sub>E</sub>&ne;B<sub>A</sub>) = 1/2</code>
-                    </div>
-                  </div>
-                  <div class="branch-summary">
-                    <strong>P(Err | E) = (1/2)&middot;0 + (1/2)&middot;(1/2) = 1/4 = 25%</strong>
-                  </div>
-                </div>
-
-                <div class="tree-branch">
-                  <div class="branch-label">No Eve: P(&not;E) = 1 - p<sub>E</sub></div>
-                  <div class="tree-leaf full-leaf">
-                    <p>Channel undisturbed (assuming noiseless fibre).</p>
-                    <code class="green-text">P(Err | &not;E) = &eta; (channel noise)</code>
-                  </div>
-                  <div class="branch-summary">
-                    <strong>P(Err | &not;E) = 0% (ideal)</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="bayes-total-formula">
-            <h4>Total Probability Expansion:</h4>
-            <code>QBER = P(Err | M) = P(E)&middot;P(Err | M, E) + P(&not;E)&middot;P(Err | M, &not;E) = p<sub>E</sub>&middot;(1/4) + (1 - p<sub>E</sub>)&middot;&eta;</code>
-            <p>
-              When channel noise &eta; = 0: <strong>QBER = p<sub>E</sub> / 4</strong>. If Eve intercepts 100% of photons (<i>p<sub>E</sub> = 1</i>), <strong>QBER = 25%</strong>.
-            </p>
-          </div>
         </div>
-      </div>
-
-      <!-- TAB 4: SHANNON ENTROPY & KEY RATE -->
-      <div id="ana-shannon-tab" class="ana-tab-content">
-        <div class="chart-grid">
-          <article class="chart-card">
-            <div class="chart-header">
-              <div>
-                <h3>Shannon Binary Entropy Function <i>H<sub>2</sub>(p)</i></h3>
-                <p><i>H<sub>2</sub>(p) = -p log<sub>2</sub>(p) - (1-p) log<sub>2</sub>(1-p)</i></p>
-              </div>
-            </div>
-            <canvas id="chart-binary-entropy"></canvas>
-          </article>
-
-          <article class="chart-card">
-            <div class="chart-header">
-              <div>
-                <h3>Asymptotic Secret Key Rate <i>R = max(0, 1 - 2H<sub>2</sub>(Q))</i></h3>
-                <p>Shor-Preskill Security Bound: Key rate drops to 0 at <strong>Q = 11.0%</strong></p>
-              </div>
-              <span class="threshold-badge">11.0% Cutoff</span>
-            </div>
-            <canvas id="chart-key-rate"></canvas>
-          </article>
-        </div>
-
-        <div class="entropy-explanation-card">
-          <h3>Information Theoretic Security &amp; Csisz&aacute;r-K&ouml;rner Bound</h3>
-          <div class="entropy-grid">
-            <div class="entropy-item">
-              <strong>Alice-Bob Mutual Information</strong>
-              <code>I(A; B) = 1 - H<sub>2</sub>(Q)</code>
-              <p>Decreases as quantum error rate increases due to noise or eavesdropping.</p>
-            </div>
-            <div class="entropy-item">
-              <strong>Alice-Eve Information Leakage</strong>
-              <code>I(A; E) &le; H<sub>2</sub>(Q)</code>
-              <p>Under coherent quantum attacks, Eve's bound is constrained by Holevo quantity.</p>
-            </div>
-            <div class="entropy-item">
-              <strong>Distillable Secret Key Rate</strong>
-              <code>R = I(A; B) - I(A; E) = 1 - 2&middot;H<sub>2</sub>(Q)</code>
-              <p>At <i>Q &approx; 11.003%</i>, <i>2&middot;H<sub>2</sub>(0.11) &approx; 1.000</i>, so <i>R = 0</i>.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB 5: HYPOTHESIS TESTING ON QBER -->
-      <div id="ana-hypothesis-tab" class="ana-tab-content">
-        <div class="hypothesis-card">
-          <h3>Statistical Hypothesis Testing: Eavesdropper Detection</h3>
-          <p>
-            Alice and Bob test whether the channel is secure by drawing a random sample of <i>k</i> sifted bits and counting errors <i>E</i>.
-          </p>
-
-          <div class="hypo-setup-grid">
-            <div class="hypo-box">
-              <strong>Null Hypothesis (Safe Channel)</strong>
-              <code>H<sub>0</sub>: Q &le; 0.11</code>
-              <small>Errors are within acceptable channel tolerance. Keep key.</small>
-            </div>
-            <div class="hypo-box">
-              <strong>Alternative Hypothesis (Eve Present)</strong>
-              <code>H<sub>1</sub>: Q &gt; 0.11</code>
-              <small>Eavesdropper detected! Abort transmission and discard key.</small>
-            </div>
-          </div>
-
-          <div class="hypo-calc-box">
-            <h4>Live Test Evaluation on Current Simulation</h4>
-            <div class="hypo-metrics-grid">
-              <div><span>Sample Size (<i>k</i>)</span><strong id="hypo-sample-size">—</strong></div>
-              <div><span>Sample Errors (<i>E</i>)</span><strong id="hypo-errors">—</strong></div>
-              <div><span>Empirical QBER (<i>Q̂</i>)</span><strong id="hypo-qber">—</strong></div>
-              <div><span>Test Statistic (<i>Z</i>)</span><strong id="hypo-z">—</strong></div>
-              <div><span>p-value</span><strong id="hypo-p">—</strong></div>
-              <div><span>Decision (&alpha; = 0.05)</span><strong id="hypo-decision">—</strong></div>
-            </div>
-          </div>
-
-          <div class="error-types-grid">
-            <div class="error-type-card">
-              <strong>Type I Error (False Alarm, &alpha;)</strong>
-              <p>Rejecting a safe channel when Eve is absent (due to statistical noise fluctuation).</p>
-            </div>
-            <div class="error-type-card">
-              <strong>Type II Error (Undetected Eve, &beta;)</strong>
-              <p>Failing to detect Eve when an eavesdropper is actively intercepting.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB 6: MATHEMATICAL REFERENCE & THEOREMS -->
-      <div id="ana-theorems-tab" class="ana-tab-content">
-        <div class="theorems-container">
-          <article class="theorem-entry">
-            <h3>1. Uniform Independent Bernoulli Basis Selection</h3>
-            <p>
-              Alice's basis <i>B<sub>A</sub></i> and Bob's basis <i>B<sub>B</sub></i> are independent discrete random variables sampled uniformly:
-              <i>P(B<sub>A</sub> = +) = P(B<sub>A</sub> = &times;) = 1/2</i> and <i>P(B<sub>B</sub> = +) = P(B<sub>B</sub> = &times;) = 1/2</i>.
-            </p>
-            <code>P(B<sub>A</sub> = B<sub>B</sub>) = P(+, +) + P(&times;, &times;) = (1/2)&middot;(1/2) + (1/2)&middot;(1/2) = 1/2 = 0.5</code>
-          </article>
-
-          <article class="theorem-entry">
-            <h3>2. Sifted Key Length: Binomial Distribution &amp; Central Limit Theorem</h3>
-            <p>
-              For <i>N</i> transmitted photons, the number of matching basis events <i>K</i> is a sum of <i>N</i> independent Bernoulli(1/2) indicators:
-              <i>K = &sum;<sub>i=1</sub><sup>N</sup> I<sub>{B<sub>A,i</sub> = B<sub>B,i</sub>}</sub> ~ Binomial(N, 1/2)</i>.
-            </p>
-            <code>E[K] = N/2 &nbsp;&nbsp;|&nbsp;&nbsp; Var(K) = N/4 &nbsp;&nbsp;|&nbsp;&nbsp; &sigma; = &radic;N / 2</code>
-            <p>
-              By the Central Limit Theorem (CLT), as <i>N &rarr; &infin;</i>, the standardized variable <i>Z<sub>N</sub> = (K - N/2) / (&radic;N / 2)</i> converges in distribution to standard normal <i>N(0, 1)</i>.
-            </p>
-          </article>
-
-          <article class="theorem-entry">
-            <h3>3. Strong Law of Large Numbers (SLLN)</h3>
-            <p>
-              The sample average basis match <i>X̄<sub>n</sub> = (1/n) &sum;<sub>i=1</sub><sup>n</sup> X<sub>i</sub></i> converges almost surely (with probability 1) to its expectation:
-            </p>
-            <code>P( lim<sub>n&rarr;&infin;</sub> X̄<sub>n</sub> = 1/2 ) = 1</code>
-          </article>
-
-          <article class="theorem-entry">
-            <h3>4. Poisson Statistics for Attenuated Laser Pulses</h3>
-            <p>
-              Practical QKD single-photon sources use heavily attenuated coherent laser pulses. The photon number <i>n</i> per pulse follows a Poisson distribution with mean &mu;:
-            </p>
-            <code>P(n photons) = (&mu;<sup>n</sup> &middot; e<sup>-&mu;</sup>) / n!</code>
-            <p>
-              Multi-photon pulses (<i>n &ge; 2</i>) with probability <i>P(n &ge; 2) = 1 - e<sup>-&mu;</sup> - &mu;e<sup>-&mu;</sup></i> enable the <strong>Photon Number Splitting (PNS) attack</strong>.
-            </p>
-          </article>
-
-          <article class="theorem-entry">
-            <h3>5. Vernam One-Time Pad: Shannon Perfect Secrecy</h3>
-            <p>
-              Given plaintext message <i>M</i> and independent uniformly random quantum key <i>K</i> of identical length:
-              Ciphertext <i>C = M &oplus; K</i> achieves Shannon's definition of <strong>Perfect Secrecy</strong>:
-            </p>
-            <code>P(M = m | C = c) = P(M = m) &nbsp;&nbsp;&hArr;&nbsp;&nbsp; H(M | C) = H(M)</code>
-            <p>
-              Knowledge of the ciphertext reveals zero statistical information about the plaintext.
-            </p>
-          </article>
-        </div>
-      </div>
-
-      <!-- ANALYTICS MODAL FOOTER -->
-      <div id="experiment-summary" class="result-banner">
-        Run a Monte Carlo experiment to populate the analytical charts and metrics.
-      </div>
-
-      <div class="modal-footer">
-        <button id="download-report" class="secondary-btn">Download Full HTML Report</button>
-        <p class="fine-print">
-          The 11.0% QBER threshold corresponds to the Shor-Preskill asymptotic proof of BB84 security.
-        </p>
-      </div>
-    </div>
-  </section>
+      </section>
+</section>
 
   <!-- ========================================================
        MODAL 3: MESSAGE OTP ENCRYPTION INSPECTOR
@@ -1089,6 +704,12 @@
       </div>
 
       <div class="antenna-layout view-sender" id="antenna-main-layout">
+          <svg class="photon-flight-overlay" id="photon-flight-overlay" viewBox="0 0 1000 400" preserveAspectRatio="none" aria-hidden="true">
+            <path class="photon-flight-track" d="M250 70 C370 40 630 40 750 70"/>
+            <path class="photon-flight-pulse" d="M250 70 C370 40 630 40 750 70"/>
+            <circle class="photon-flight-dot" r="6" cx="250" cy="70"/>
+            <circle class="photon-flight-ring" cx="750" cy="70" r="10"/>
+          </svg>
         <!-- SENDER SECTION (TRANSMITTER) -->
         <div class="antenna-panel sender-panel" id="antenna-sender-card">
           <div class="antenna-panel-title">
