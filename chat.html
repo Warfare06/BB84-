@@ -127,7 +127,22 @@
 
         <div class="top-actions">
           <span id="key-status" class="key-badge">No accepted key</span>
-          <button class="primary-action-btn" id="open-sim">
+                    <!-- GLOWING SIMULATION BUTTON -->
+          <button class="glowing-sim-btn" id="open-antenna-sim" title="Open 2-Device Quantum Parabolic Dish Simulation">
+            <span class="sim-pulse-ring"></span>
+            <span class="glowing-logo">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 10a12 12 0 0 1 12 12"/>
+                <path d="M4 6a16 16 0 0 1 16 16"/>
+                <circle cx="4" cy="20" r="1.5" fill="currentColor"/>
+                <path d="m14 4 3 3"/>
+                <path d="m20 10-3-3"/>
+                <path d="m15.5 5.5 3 3"/>
+              </svg>
+            </span>
+            <span class="glowing-sim-text">Simulation 📡</span>
+          </button>
+<button class="primary-action-btn" id="open-sim">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
             <span>BB84 Simulator</span>
           </button>
@@ -1031,6 +1046,294 @@
   </section>
 
   <!-- FIREBASE SDK v8 -->
+    <!-- ========================================================
+       MODAL 4: 2-DEVICE PARABOLIC DISH ANTENNA SIMULATION
+       ======================================================== -->
+  <section id="antenna-sim-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="antenna-sim-title">
+    <div class="modal-card wide extra-wide antenna-modal-card">
+      <div class="modal-heading">
+        <div class="antenna-header-left">
+          <div class="antenna-header-icon">📡</div>
+          <div>
+            <p class="eyebrow">QUANTUM PARABOLIC DISH NETWORK · 2-DEVICE LIVE SYNC</p>
+            <h2 id="antenna-sim-title">Quantum Antenna Simulation</h2>
+          </div>
+        </div>
+
+        <div class="antenna-role-selector">
+          <span>Active View:</span>
+          <button type="button" class="antenna-role-btn active" id="btn-view-sender" data-view="sender">
+            <span class="dish-indicator-dot tx-dot"></span>
+            <span>Sender (Alice 📡)</span>
+          </button>
+          <button type="button" class="antenna-role-btn" id="btn-view-receiver" data-view="receiver">
+            <span class="dish-indicator-dot rx-dot"></span>
+            <span>Receiver (Bob 📡)</span>
+          </button>
+          <button type="button" class="antenna-role-btn" id="btn-view-dual" data-view="dual">
+            <span>⚡ Dual View (Side-by-Side)</span>
+          </button>
+        </div>
+
+        <button class="icon-btn" data-close="antenna-sim-modal" aria-label="Close">×</button>
+      </div>
+
+      <div class="antenna-server-banner">
+        <div class="antenna-banner-left">
+          <span class="conn-dot"></span>
+          <span id="antenna-server-status">Connected to Server: <strong>Server 1 · Alpha Channel</strong></span>
+        </div>
+        <div class="antenna-banner-right">
+          <span class="antenna-mode-tag" id="antenna-assigned-tag">Your Station: Alice (Transmitter)</span>
+        </div>
+      </div>
+
+      <div class="antenna-layout view-sender" id="antenna-main-layout">
+        <!-- SENDER SECTION (TRANSMITTER) -->
+        <div class="antenna-panel sender-panel" id="antenna-sender-card">
+          <div class="antenna-panel-title">
+            <span class="panel-badge tx-badge">TRANSMITTER STATION (SENDER)</span>
+            <h3>Parabolic Quantum Transmitter 📡</h3>
+          </div>
+
+          <!-- PARABOLIC DISH TRANSMITTER IMAGE / SVG -->
+          <div class="dish-visual-container">
+            <div class="dish-svg-wrap" id="tx-dish-wrap">
+              <svg class="parabolic-dish-svg" viewBox="0 0 340 240" width="100%" height="240">
+                <defs>
+                  <linearGradient id="dishGradTx" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#0284c7"/>
+                    <stop offset="50%" stop-color="#0f172a"/>
+                    <stop offset="100%" stop-color="#00e5ff"/>
+                  </linearGradient>
+                  <linearGradient id="metalGradTx" x1="0%" y1="100%" x2="0%" y2="0%">
+                    <stop offset="0%" stop-color="#1e293b"/>
+                    <stop offset="100%" stop-color="#475569"/>
+                  </linearGradient>
+                  <filter id="glowCyanTx" x="-30%" y="-30%" width="160%" height="160%">
+                    <feGaussianBlur stdDeviation="5" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                  </filter>
+                </defs>
+
+                <!-- Ground / Mounting Base -->
+                <ellipse cx="170" cy="220" rx="80" ry="12" fill="#071220" stroke="#1e293b" stroke-width="2"/>
+                <path d="M145 220 L165 160 L175 160 L195 220 Z" fill="url(#metalGradTx)" stroke="#334155" stroke-width="1.5"/>
+                <circle cx="170" cy="158" r="9" fill="#00e5ff" filter="url(#glowCyanTx)"/>
+
+                <!-- Parabolic Reflector Curve -->
+                <g id="tx-dish-gimbal" transform="rotate(-15 170 158)">
+                  <!-- Parabolic Dish Shell -->
+                  <path d="M75 75 Q 150 170 225 115 Q 160 75 75 75 Z" fill="url(#dishGradTx)" stroke="#00e5ff" stroke-width="2.5"/>
+                  
+                  <!-- Dish Mesh Lines / Concentric ribs -->
+                  <path d="M95 82 Q 150 150 208 112" fill="none" stroke="rgba(0, 229, 255, 0.45)" stroke-width="1.2" stroke-dasharray="3,3"/>
+                  <path d="M115 90 Q 152 135 190 110" fill="none" stroke="rgba(0, 229, 255, 0.45)" stroke-width="1.2" stroke-dasharray="3,3"/>
+                  
+                  <!-- Feed Horn Struts (Tripod) -->
+                  <line x1="95" y1="80" x2="170" y2="42" stroke="#94a3b8" stroke-width="2"/>
+                  <line x1="195" y1="110" x2="170" y2="42" stroke="#94a3b8" stroke-width="2"/>
+                  <line x1="145" y1="130" x2="170" y2="42" stroke="#94a3b8" stroke-width="2"/>
+
+                  <!-- Central Feed Horn / Emitter at Focus -->
+                  <circle cx="170" cy="42" r="8" fill="#00f5a0" filter="url(#glowCyanTx)"/>
+                  <circle cx="170" cy="42" r="3.5" fill="#ffffff"/>
+                  <polygon points="165,42 175,42 170,33" fill="#00e5ff"/>
+                </g>
+
+                <!-- Emitted Quantum Waves -->
+                <g id="tx-wave-pulses" class="dish-wave-group">
+                  <path class="tx-wave-arc wave-1" d="M200 65 A 32 32 0 0 1 245 105" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round"/>
+                  <path class="tx-wave-arc wave-2" d="M225 45 A 60 60 0 0 1 290 118" fill="none" stroke="#00f5a0" stroke-width="3" stroke-linecap="round"/>
+                  <path class="tx-wave-arc wave-3" d="M250 25 A 88 88 0 0 1 330 130" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round"/>
+                </g>
+              </svg>
+            </div>
+            <div class="dish-caption">Parabolic Quantum Optical Dish Transmitter 📡 (Alice Station)</div>
+          </div>
+
+          <!-- SENDER CONTROLS: BIT CHANGER & BASE CHANGER ONLY -->
+          <div class="tx-controls-grid">
+            <!-- BIT CHANGER -->
+            <div class="control-box bit-changer-box">
+              <div class="box-label">
+                <span class="box-icon">🔢</span>
+                <span>Bit Changer (A<sub>i</sub>)</span>
+              </div>
+              <div class="toggle-pills" id="sender-bit-changer">
+                <button type="button" class="pill-btn bit-btn active" data-bit="0">
+                  <span class="btn-dot dot-0"></span>
+                  <strong>Bit 0</strong>
+                  <small>|0⟩ / |+⟩</small>
+                </button>
+                <button type="button" class="pill-btn bit-btn" data-bit="1">
+                  <span class="btn-dot dot-1"></span>
+                  <strong>Bit 1</strong>
+                  <small>|1⟩ / |-⟩</small>
+                </button>
+              </div>
+              <div class="state-preview-tag" id="tx-state-preview">Prepared Photon: <strong>|0⟩ (0° Rectilinear)</strong></div>
+            </div>
+
+            <!-- BASE CHANGER -->
+            <div class="control-box base-changer-box">
+              <div class="box-label">
+                <span class="box-icon">🧭</span>
+                <span>Base Changer (B<sub>A</sub>)</span>
+              </div>
+              <div class="toggle-pills" id="sender-base-changer">
+                <button type="button" class="pill-btn basis-btn active" data-basis="+">
+                  <span class="basis-icon">+</span>
+                  <strong>+ Rectilinear</strong>
+                  <small>0° &amp; 90°</small>
+                </button>
+                <button type="button" class="pill-btn basis-btn" data-basis="×">
+                  <span class="basis-icon">×</span>
+                  <strong>× Diagonal</strong>
+                  <small>45° &amp; 135°</small>
+                </button>
+              </div>
+              <div class="state-preview-tag" id="tx-basis-preview">Basis Orientation: <strong>+ (Rectilinear)</strong></div>
+            </div>
+          </div>
+
+          <!-- SEND BUTTON -->
+          <div class="tx-send-wrap">
+            <button type="button" id="btn-transmit-live-photon" class="glowing-transmit-btn full-width">
+              <span class="btn-beam-effect"></span>
+              <span class="btn-icon">📡</span>
+              <span class="btn-text">Transmit Quantum Photon to Receiver</span>
+            </button>
+            <div class="tx-status-line" id="tx-live-status">Ready to beam. Select bit and basis, then click Transmit.</div>
+          </div>
+        </div>
+
+        <!-- RECEIVER SECTION (RECEIVER) -->
+        <div class="antenna-panel receiver-panel" id="antenna-receiver-card">
+          <div class="antenna-panel-title">
+            <span class="panel-badge rx-badge">RECEIVER STATION (BOB)</span>
+            <h3>Parabolic Quantum Receiver 📡</h3>
+          </div>
+
+          <!-- PARABOLIC DISH RECEIVER IMAGE / SVG -->
+          <div class="dish-visual-container">
+            <div class="dish-svg-wrap" id="rx-dish-wrap">
+              <svg class="parabolic-dish-svg" viewBox="0 0 340 240" width="100%" height="240">
+                <defs>
+                  <linearGradient id="dishGradRx" x1="100%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#00f5a0"/>
+                    <stop offset="50%" stop-color="#0f172a"/>
+                    <stop offset="100%" stop-color="#0284c7"/>
+                  </linearGradient>
+                </defs>
+
+                <!-- Ground / Mounting Base -->
+                <ellipse cx="170" cy="220" rx="80" ry="12" fill="#071220" stroke="#1e293b" stroke-width="2"/>
+                <path d="M145 220 L165 160 L175 160 L195 220 Z" fill="url(#metalGradTx)" stroke="#334155" stroke-width="1.5"/>
+                <circle cx="170" cy="158" r="9" fill="#00f5a0" filter="url(#glowCyanTx)"/>
+
+                <!-- Parabolic Reflector Curve (Facing Left towards Transmitter) -->
+                <g id="rx-dish-gimbal" transform="rotate(15 170 158)">
+                  <!-- Parabolic Dish Shell -->
+                  <path d="M265 75 Q 190 170 115 115 Q 180 75 265 75 Z" fill="url(#dishGradRx)" stroke="#00f5a0" stroke-width="2.5"/>
+                  
+                  <!-- Dish Mesh Lines / Concentric ribs -->
+                  <path d="M245 82 Q 190 150 132 112" fill="none" stroke="rgba(0, 245, 160, 0.45)" stroke-width="1.2" stroke-dasharray="3,3"/>
+                  <path d="M225 90 Q 188 135 150 110" fill="none" stroke="rgba(0, 245, 160, 0.45)" stroke-width="1.2" stroke-dasharray="3,3"/>
+
+                  <!-- Feed Horn Struts (Tripod) -->
+                  <line x1="245" y1="80" x2="170" y2="42" stroke="#94a3b8" stroke-width="2"/>
+                  <line x1="145" y1="110" x2="170" y2="42" stroke="#94a3b8" stroke-width="2"/>
+                  <line x1="195" y1="130" x2="170" y2="42" stroke="#94a3b8" stroke-width="2"/>
+
+                  <!-- Central Feed Horn / APD Detector -->
+                  <circle cx="170" cy="42" r="8" fill="#00e5ff" filter="url(#glowCyanTx)"/>
+                  <circle cx="170" cy="42" r="3.5" fill="#ffffff"/>
+                  <polygon points="175,42 165,42 170,33" fill="#00f5a0"/>
+                </g>
+
+                <!-- Incoming Quantum Waves converging on receiver -->
+                <g id="rx-wave-pulses" class="dish-wave-group rx-wave-group">
+                  <path class="rx-wave-arc rwave-1" d="M140 65 A 32 32 0 0 0 95 105" fill="none" stroke="#00f5a0" stroke-width="3" stroke-linecap="round"/>
+                  <path class="rx-wave-arc rwave-2" d="M115 45 A 60 60 0 0 0 50 118" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round"/>
+                  <path class="rx-wave-arc rwave-3" d="M90 25 A 88 88 0 0 0 10 130" fill="none" stroke="#00f5a0" stroke-width="3" stroke-linecap="round"/>
+                </g>
+              </svg>
+            </div>
+            <div class="dish-caption">Parabolic Quantum Optical Dish Detector 📡 (Bob Station)</div>
+          </div>
+
+          <!-- RECEIVER CONTROLS: BASE CHANGER ONLY -->
+          <div class="rx-controls-wrap">
+            <div class="control-box base-changer-box">
+              <div class="box-label">
+                <span class="box-icon">🧭</span>
+                <span>Receiver Base Changer (B<sub>B</sub>)</span>
+              </div>
+              <div class="toggle-pills" id="receiver-base-changer">
+                <button type="button" class="pill-btn rx-basis-btn active" data-rx-basis="+">
+                  <span class="basis-icon">+</span>
+                  <strong>+ Rectilinear</strong>
+                  <small>0° &amp; 90° Detector</small>
+                </button>
+                <button type="button" class="pill-btn rx-basis-btn" data-rx-basis="×">
+                  <span class="basis-icon">×</span>
+                  <strong>× Diagonal</strong>
+                  <small>45° &amp; 135° Detector</small>
+                </button>
+              </div>
+              <div class="state-preview-tag" id="rx-basis-preview">Active Detection Basis: <strong>+ (Rectilinear)</strong></div>
+            </div>
+          </div>
+
+          <!-- LIVE RECEPTION RESULT DISPLAY -->
+          <div class="rx-detection-display">
+            <div class="detection-header">
+              <span>Single-Photon APD Detection Status</span>
+              <span id="rx-live-status-pill" class="pill-waiting">Waiting for Beam…</span>
+            </div>
+
+            <div class="detection-grid">
+              <div class="det-metric">
+                <span>Sender Bit (A<sub>i</sub>)</span>
+                <strong id="det-sender-bit">—</strong>
+              </div>
+              <div class="det-metric">
+                <span>Sender Basis (B<sub>A</sub>)</span>
+                <strong id="det-sender-basis">—</strong>
+              </div>
+              <div class="det-metric">
+                <span>Your Basis (B<sub>B</sub>)</span>
+                <strong id="det-bob-basis">+</strong>
+              </div>
+              <div class="det-metric">
+                <span>Measured Bit</span>
+                <strong id="det-measured-bit" class="highlight-green">—</strong>
+              </div>
+            </div>
+
+            <!-- RESULT BANNER: MATCH OR MISMATCH -->
+            <div id="rx-sifting-outcome" class="sifting-banner empty">
+              Awaiting transmission from Sender. Change your basis anytime!
+            </div>
+
+            <!-- ACCUMULATED SIFTED KEY BAR -->
+            <div class="sifted-session-tally">
+              <div class="session-tally-row">
+                <span>Accumulated Live Sifted Key:</span>
+                <strong id="live-sifted-key-bits">0 bits</strong>
+              </div>
+              <div class="sifted-bitstream-tape" id="live-sifted-tape">No bits sifted yet</div>
+              <button type="button" id="btn-use-live-key" class="secondary-btn mini-btn" disabled>
+                Use Key in Quantum Chat ↗
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="script.js"></script>
