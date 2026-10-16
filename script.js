@@ -860,8 +860,8 @@ function setupAntennaSimulation() {
       if (layout) layout.className = `antenna-layout view-${activeAntennaView}`;
       const sender = $("antenna-sender-card");
       const receiver = $("antenna-receiver-card");
-      if (sender) sender.style.display = activeAntennaView === "receiver" ? "none" : "";
-      if (receiver) receiver.style.display = activeAntennaView === "sender" ? "none" : "";
+      if (sender) sender.style.display = "";
+      if (receiver) receiver.style.display = "";
     });
   });
 
@@ -879,7 +879,6 @@ function setupAntennaSimulation() {
     }
     try {
       if (status) status.textContent = "Transmitting photon…";
-      animatePhotonFlight();
       const payload = {
         sender: role,
         senderName: displayName,
@@ -888,6 +887,13 @@ function setupAntennaSimulation() {
         time: Date.now()
       };
       await db.ref(`servers/${room}/live_photons`).push(payload);
+      // Show animation only after Firebase confirms the photon write.
+      animatePhotonFlight();
+      // In Dual View, this page is Alice's session, so Firebase correctly filters
+      // Alice's own event. Simulate the local receiver display for the same payload.
+      if (activeAntennaView === "dual") {
+        handleIncomingLivePhoton(payload, false);
+      }
       if (status) status.textContent = `Photon transmitted: bit ${liveTxBit}, basis ${liveTxBasis}. Waiting for Bob…`;
       showToast("Quantum photon transmitted to Firebase.");
     } catch (error) {
@@ -914,9 +920,9 @@ function setupAntennaSimulation() {
   if (initialRxPreview) initialRxPreview.innerHTML = `Your Measurement Basis: <strong>${liveRxBasis} (${liveRxBasis === "+" ? "Rectilinear" : "Diagonal"})</strong>`;
 }
 
-function handleIncomingLivePhoton(data) {
+function handleIncomingLivePhoton(data, playAnimation = true) {
   if (!data || typeof data.bit === "undefined" || !data.basis) return;
-  animatePhotonFlight();
+  if (playAnimation) animatePhotonFlight();
   const senderBit = Number(data.bit) ? 1 : 0;
   const senderBasis = data.basis === "×" ? "×" : "+";
   const receiverBasis = liveRxBasis;
