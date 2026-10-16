@@ -39,9 +39,15 @@ function secretKeyRate(q) {
 // STATE MANAGEMENT
 // ==========================================================================
 let db = null;
-let room = localStorage.getItem("quantum_room") || "server_1";
-let role = localStorage.getItem("quantum_role") || "Alice";
-let displayName = localStorage.getItem("quantum_name") || role;
+const pageParams = new URLSearchParams(window.location.search);
+const requestedRoom = pageParams.get("room");
+const requestedRole = pageParams.get("role");
+const requestedName = pageParams.get("name");
+let room = ["server_1", "server_2", "server_3", "server_4", "server_5"].includes(requestedRoom)
+  ? requestedRoom : (localStorage.getItem("quantum_room") || "server_1");
+let role = ["Alice", "Bob"].includes(requestedRole)
+  ? requestedRole : (localStorage.getItem("quantum_role") || "Alice");
+let displayName = requestedName || localStorage.getItem("quantum_name") || role;
 let soundEnabled = localStorage.getItem("quantum_sound_enabled") !== "false";
 
 let eveEnabled = false;
@@ -77,6 +83,7 @@ let liveRxBasis = "+";
 let activeAntennaView = "sender";
 let liveSiftedKeyBits = "";
 let processedLivePhotonIds = new Set();
+let livePhotonListenerReady = false;
 
 // ==========================================================================
 // WEB AUDIO SYNTHESIZER (Single-Photon APD clicks & laser pulses)
@@ -273,11 +280,11 @@ function initApp() {
   // Table filter buttons
   setupTableFilters();
 
-  // PTRP Analytics controls
-  $("run-monte-carlo").addEventListener("click", runMonteCarloExperiment);
-  $("mc-eve").addEventListener("change", e => {
-    $("mc-eve-prob-wrap").style.display = e.target.checked ? "flex" : "none";
-  });
+  // Simple QBER error percentage calculator
+  $("calculate-qber")?.addEventListener("click", calculateQberPercentage);
+  $("qber-total-bits")?.addEventListener("input", calculateQberPercentage);
+  $("qber-error-bits")?.addEventListener("input", calculateQberPercentage);
+  calculateQberPercentage();
 
   // Exports
   $("export-csv").addEventListener("click", exportExperimentCSV);
@@ -333,14 +340,22 @@ function updateRoomTitle() {
 }
 
 function changeRole() {
-  localStorage.setItem("quantum_role", $("role-select").value);
-  location.reload();
+  const nextRole = $("role-select").value;
+  localStorage.setItem("quantum_role", nextRole);
+  const url = new URL(window.location.href);
+  url.searchParams.set("role", nextRole);
+  url.searchParams.set("room", $("room-select").value);
+  window.location.href = url.toString();
 }
 
 function changeRoom() {
   detachListeners();
   room = $("room-select").value;
   localStorage.setItem("quantum_room", room);
+  const url = new URL(window.location.href);
+  url.searchParams.set("room", room);
+  url.searchParams.set("role", role);
+  window.history.replaceState({}, "", url.toString());
 
   activeKeyBits = "";
   keyBufferOffset = 0;
@@ -349,6 +364,12 @@ function changeRoom() {
 
   processedMessageIds.clear();
   processedKeyIds.clear();
+  processedLivePhotonIds.clear();
+  liveSiftedKeyBits = "";
+  livePhotonListenerReady = false;
+  if ($("live-sifted-key-bits")) $("live-sifted-key-bits").textContent = "0 bits";
+  if ($("live-sifted-tape")) $("live-sifted-tape").textContent = "No bits sifted yet";
+  if ($("btn-use-live-key")) $("btn-use-live-key").disabled = true;
 
   $("chat-messages").replaceChildren();
   $("crypto-logs").replaceChildren();
@@ -474,15 +495,21 @@ function attachListeners() {
 
   // Peer typing state
   const typingRef = trackListener(db.ref(`${root}/typing_status/${peer}`));
-    // Real-time 2-Device Parabolic Dish Photons
-  const livePhotonsRef = trackListener(db.ref(`${root}/live_photons`).limitToLast(20));
+
+  // Live antenna photons. Ignore Firebase's initial replay of old child records.
+  livePhotonListenerReady = false;
+  const livePhotonsRef = trackListener(db.ref(`${root}/live_photons`).limitToLast(50));
   livePhotonsRef.on("child_added", snapshot => {
     const data = snapshot.val() || {};
+    if (!livePhotonListenerReady) return;
     if (processedLivePhotonIds.has(snapshot.key)) return;
     processedLivePhotonIds.add(snapshot.key);
-
-    if (data.sender === role && activeAntennaView !== "dual") return;
+    if (data.sender === role) return;
+    if (role !== "Bob" || data.sender !== "Alice") return;
     handleIncomingLivePhoton(data);
+  }, handleFirebaseErr);
+  livePhotonsRef.on("value", () => {
+    livePhotonListenerReady = true;
   }, handleFirebaseErr);
 
   typingRef.on("value", snapshot => {
@@ -737,6 +764,48 @@ function selectRandomSample(indexes, fraction = 0.25) {
 // Open the parabolic-dish simulation modal.
 // Wire up the live parabolic-dish simulation controls.
 let antennaSetupComplete = false;
+let photonAnimationTimer = null;
+function animatePhotonFlight() {
+  const layout = $("antenna-main-layout");
+  const overlay = $("photon-flight-overlay");
+  const tx = $("tx-wave-pulses");
+  const rx = $("rx-wave-pulses");
+  const txWrap = $("tx-dish-wrap");
+  const rxWrap = $("rx-dish-wrap");
+
+  // Restart the SVG travel beam so every click visibly emits a new pulse.
+  if (overlay) {
+    overlay.classList.remove("flight-active");
+    const pulse = overlay.querySelector(".photon-flight-pulse");
+    const dot = overlay.querySelector(".photon-flight-dot");
+    if (pulse) { pulse.style.animation = "none"; void pulse.getBoundingClientRect(); pulse.style.animation = ""; }
+    if (dot) { dot.style.animation = "none"; void dot.getBoundingClientRect(); dot.style.animation = ""; }
+    void overlay.getBoundingClientRect();
+    overlay.classList.add("flight-active");
+  }
+
+  tx?.classList.remove("active-transmitting");
+  rx?.classList.remove("active-receiving");
+  void (tx?.getBoundingClientRect());
+  tx?.classList.add("active-transmitting");
+  txWrap?.classList.add("emitting");
+  if (photonAnimationTimer) clearTimeout(photonAnimationTimer);
+
+  // Wave reaches the receiving dish after the travel animation.
+  setTimeout(() => {
+    rx?.classList.add("active-receiving");
+    rxWrap?.classList.add("receiving");
+  }, 850);
+
+  photonAnimationTimer = setTimeout(() => {
+    overlay?.classList.remove("flight-active");
+    tx?.classList.remove("active-transmitting");
+    rx?.classList.remove("active-receiving");
+    txWrap?.classList.remove("emitting");
+    rxWrap?.classList.remove("receiving");
+  }, 2100);
+}
+
 function setupAntennaSimulation() {
   if (antennaSetupComplete) return;
   antennaSetupComplete = true;
@@ -772,10 +841,10 @@ function setupAntennaSimulation() {
     });
   });
 
-  $("receiver-base-changer")?.querySelectorAll("[data-basis]").forEach(button => {
+  $("receiver-base-changer")?.querySelectorAll("[data-rx-basis]").forEach(button => {
     button.addEventListener("click", () => {
-      liveRxBasis = button.dataset.basis === "×" ? "×" : "+";
-      setActive("receiver-base-changer", "[data-basis]", "data-basis", liveRxBasis);
+      liveRxBasis = button.dataset.rxBasis === "×" ? "×" : "+";
+      setActive("receiver-base-changer", "[data-rx-basis]", "data-rx-basis", liveRxBasis);
       const preview = $("rx-basis-preview");
       if (preview) preview.innerHTML = `Your Measurement Basis: <strong>${liveRxBasis} (${liveRxBasis === "+" ? "Rectilinear" : "Diagonal"})</strong>`;
       const bobBasis = $("det-bob-basis");
@@ -810,6 +879,7 @@ function setupAntennaSimulation() {
     }
     try {
       if (status) status.textContent = "Transmitting photon…";
+      animatePhotonFlight();
       const payload = {
         sender: role,
         senderName: displayName,
@@ -846,6 +916,7 @@ function setupAntennaSimulation() {
 
 function handleIncomingLivePhoton(data) {
   if (!data || typeof data.bit === "undefined" || !data.basis) return;
+  animatePhotonFlight();
   const senderBit = Number(data.bit) ? 1 : 0;
   const senderBasis = data.basis === "×" ? "×" : "+";
   const receiverBasis = liveRxBasis;
@@ -865,7 +936,7 @@ function handleIncomingLivePhoton(data) {
       ? `Bases match (${senderBasis}). Bit ${measuredBit} added to the sifted key.`
       : `Bases differ (sender ${senderBasis}, receiver ${receiverBasis}). Discard this bit during sifting.`;
   }
-  if (matched) {
+  if (matched && role === "Bob") {
     liveSiftedKeyBits += String(measuredBit);
     assignText("live-sifted-key-bits", `${liveSiftedKeyBits.length} bits`);
     const tape = $("live-sifted-tape");
@@ -1686,7 +1757,7 @@ function setupTabs() {
       const targetId = `ana-${btn.dataset.anaTab}`;
       $(targetId)?.classList.add("active");
 
-      if (latestExperiment) redrawExperimentCharts();
+      if (btn.dataset.anaTab === "error-tab") calculateQberPercentage();
     });
   });
 }
@@ -1696,11 +1767,56 @@ function closeModal(id) {
 }
 
 function openAnalytics() {
-  $("analytics-modal").classList.add("open");
-  if (!latestExperiment) {
-    runMonteCarloExperiment();
-  } else {
-    redrawExperimentCharts();
+  $("analytics-modal")?.classList.add("open");
+  calculateQberPercentage();
+}
+
+function calculateQberPercentage() {
+  const totalInput = $("qber-total-bits");
+  const errorInput = $("qber-error-bits");
+  if (!totalInput || !errorInput) return;
+
+  const total = Math.floor(Number(totalInput.value));
+  const errors = Math.floor(Number(errorInput.value));
+  const result = $("qber-result");
+  const decision = $("qber-decision");
+  const detail = $("qber-decision-detail");
+  const steps = $("qber-calculation-steps");
+  const threshold = 11;
+
+  if (!Number.isFinite(total) || total < 1 ||
+      !Number.isFinite(errors) || errors < 0 || errors > total) {
+    if (result) result.textContent = "—";
+    if (decision) decision.textContent = "Check inputs";
+    if (detail) detail.textContent = "Use total bits ≥ 1 and errors between 0 and total bits.";
+    if (steps) {
+      steps.className = "result-banner error";
+      steps.textContent = "Invalid input: the error count must be between 0 and the total number of bits checked.";
+    }
+    return;
+  }
+
+  const qber = (errors / total) * 100;
+  const difference = Math.abs(threshold - qber);
+  const below = qber < threshold;
+  const equal = Math.abs(qber - threshold) < 1e-9;
+
+  if (result) result.textContent = `${qber.toFixed(2)}%`;
+  if ($("qber-threshold")) $("qber-threshold").textContent = `${threshold.toFixed(2)}%`;
+
+  if (decision) decision.textContent = equal ? "At threshold" : (below ? "Below threshold" : "Above threshold");
+  if (detail) {
+    detail.textContent = equal
+      ? "Exactly equal to the threshold."
+      : `${difference.toFixed(2)} percentage points ${below ? "below" : "above"} threshold.`;
+  }
+
+  if (steps) {
+    steps.className = `result-banner ${below ? "success" : "error"}`;
+    const interpretation = below
+      ? "below the illustrative threshold"
+      : (equal ? "at the illustrative threshold" : "above the illustrative threshold");
+    steps.textContent = `QBER = (${errors} ÷ ${total}) × 100 = ${qber.toFixed(2)}%. This is ${interpretation} of ${threshold.toFixed(2)}%.`;
   }
 }
 
