@@ -63,7 +63,7 @@ Simply double-click `index.html` (or `standalone_demo.html`) in your file explor
 To simulate two separate communicating stations (Alice in one window, Bob in another):
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/bb84-ptrp-quantum-lab.git
+git clone https://github.com/Warfare06/bb84-ptrp-quantum-lab.git
 cd bb84-ptrp-quantum-lab
 
 # Start a local web server
