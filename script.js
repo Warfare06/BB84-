@@ -734,6 +734,17 @@ function selectRandomSample(indexes, fraction = 0.25) {
 // ==========================================================================
 // SIMULATOR UI & ACTIONS
 // ==========================================================================
+function openAntennaSimModal() {
+  const modal = document.getElementById("antenna-sim-modal");
+
+  if (!modal) {
+    console.error("Antenna simulation modal not found.");
+    return;
+  }
+
+  modal.classList.add("open");
+}
+
 function openSimulator() {
   $("sim-modal").classList.add("open");
   resizeCanvases();
