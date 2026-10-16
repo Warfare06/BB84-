@@ -70,6 +70,14 @@ let channelCtx = null;
 let detectorFlash = { d0: 0, d1: 0, eve: 0 };
 let currentTableFilter = "all";
 
+// 2-Device Parabolic Antenna State
+let liveTxBit = 0;
+let liveTxBasis = "+";
+let liveRxBasis = "+";
+let activeAntennaView = "sender";
+let liveSiftedKeyBits = "";
+let processedLivePhotonIds = new Set();
+
 // ==========================================================================
 // WEB AUDIO SYNTHESIZER (Single-Photon APD clicks & laser pulses)
 // ==========================================================================
@@ -299,6 +307,8 @@ function initApp() {
 
   // Canvas setup
   setupChannelCanvas();
+  $("open-antenna-sim")?.addEventListener("click", openAntennaSimModal);
+  setupAntennaSimulation();
 
   updateRoomTitle();
   updateEveUI();
@@ -452,6 +462,17 @@ function attachListeners() {
 
   // Peer typing state
   const typingRef = trackListener(db.ref(`${root}/typing_status/${peer}`));
+    // Real-time 2-Device Parabolic Dish Photons
+  const livePhotonsRef = trackListener(db.ref(`${root}/live_photons`).limitToLast(20));
+  livePhotonsRef.on("child_added", snapshot => {
+    const data = snapshot.val() || {};
+    if (processedLivePhotonIds.has(snapshot.key)) return;
+    processedLivePhotonIds.add(snapshot.key);
+
+    if (data.sender === role && activeAntennaView !== "dual") return;
+    handleIncomingLivePhoton(data);
+  }, handleFirebaseErr);
+
   typingRef.on("value", snapshot => {
     const isTyping = snapshot.val() === true;
     $("typing-line").textContent = isTyping ? `${peer} is typing…` : "";
