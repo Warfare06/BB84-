@@ -1741,20 +1741,14 @@ label {
   max-width: 720px;
   margin: 0 auto;
 }
-.antenna-layout.view-sender #antenna-receiver-card {
-  display: none !important;
-}
-
+.antenna-layout.view-sender 
 /* When viewing Receiver only */
 .antenna-layout.view-receiver {
   grid-template-columns: 1fr;
   max-width: 720px;
   margin: 0 auto;
 }
-.antenna-layout.view-receiver #antenna-sender-card {
-  display: none !important;
-}
-
+.antenna-layout.view-receiver 
 /* When viewing Dual View (Side-by-side) */
 .antenna-layout.view-dual {
   grid-template-columns: 1fr 1fr;
@@ -2115,8 +2109,99 @@ label {
 }
 
 @media (max-width: 900px) {
-  .antenna-layout.view-dual { grid-template-columns: 1fr; }
+ .antenna-layout.view-dual { grid-template-columns: 1fr; }
   .tx-controls-grid { grid-template-columns: 1fr; }
   .detection-grid { grid-template-columns: repeat(2, 1fr); }
   .antenna-role-selector { flex-wrap: wrap; }
+}
+
+
+/* FINAL ANTENNA LAYOUT FIX: keep overlay out of the CSS grid and align both stations. */
+#antenna-main-layout {
+  position: relative !important;
+  display: grid !important;
+  align-items: start;
+  gap: 20px;
+  width: 100%;
+  max-width: none !important;
+  margin: 0 auto;
+  isolation: isolate;
+}
+#antenna-main-layout.view-sender,
+#antenna-main-layout.view-receiver {
+  grid-template-columns: minmax(0, 720px) !important;
+  justify-content: center;
+}
+#antenna-main-layout.view-dual {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  justify-content: stretch;
+}
+#antenna-main-layout > .photon-flight-overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 20;
+  pointer-events: none;
+  overflow: visible;
+  opacity: 0;
+}
+#antenna-main-layout > .photon-flight-overlay.flight-active { opacity: 1; }
+#antenna-main-layout.view-sender #antenna-receiver-card,
+#antenna-main-layout.view-receiver 
+#antenna-main-layout.view-dual #antenna-sender-card,
+#antenna-main-layout.view-dual #antenna-receiver-card {
+  display: flex !important;
+  width: 100%;
+  min-width: 0;
+  grid-column: auto;
+}
+#antenna-main-layout.view-dual .antenna-panel { padding: 16px; gap: 14px; }
+.photon-flight-track {
+  fill: none;
+  stroke: rgba(0, 229, 255, .18);
+  stroke-width: 2;
+  stroke-dasharray: 7 10;
+}
+.photon-flight-pulse {
+  fill: none;
+  stroke: #00e5ff;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 32 1200;
+  filter: drop-shadow(0 0 6px #00e5ff) drop-shadow(0 0 14px #00f5a0);
+  animation: photon-travel 1.15s cubic-bezier(.3,.1,.65,1) forwards;
+}
+.photon-flight-dot {
+  fill: #ffffff;
+  stroke: #00e5ff;
+  stroke-width: 5;
+  filter: drop-shadow(0 0 7px #00e5ff) drop-shadow(0 0 14px #00f5a0);
+  offset-path: path("M 250 250 C 370 210, 630 210, 750 250");
+  animation: photon-dot-travel 1.15s cubic-bezier(.3,.1,.65,1) forwards;
+}
+.photon-flight-overlay.flight-active .photon-flight-ring {
+  animation: receiver-arrival-ring .65s ease-out 1.05s both;
+}
+@keyframes photon-travel {
+  from { stroke-dashoffset: 900; opacity: .1; }
+  15% { opacity: 1; }
+  to { stroke-dashoffset: 0; opacity: 1; }
+}
+@keyframes photon-dot-travel {
+  from { offset-distance: 0%; opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  to { offset-distance: 100%; opacity: 0; }
+}
+@keyframes receiver-arrival-ring {
+  0% { opacity: 0; transform: scale(.25); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: scale(2.5); }
+}
+#tx-dish-wrap.emitting { filter: drop-shadow(0 0 10px rgba(0,229,255,.55)); }
+#rx-dish-wrap.receiving { filter: drop-shadow(0 0 12px rgba(0,245,160,.65)); }
+@media (max-width: 900px) {
+  #antenna-main-layout.view-dual { grid-template-columns: minmax(0,1fr) !important; }
 }
