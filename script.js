@@ -287,9 +287,9 @@ function initApp() {
   calculateQberPercentage();
 
   // Exports
-  $("export-csv").addEventListener("click", exportExperimentCSV);
-  $("download-report").addEventListener("click", exportHTMLReport);
-  $("print-report").addEventListener("click", exportHTMLReport);
+  $("export-csv")?.addEventListener("click", exportExperimentCSV);
+  $("download-report")?.addEventListener("click", exportHTMLReport);
+  $("print-report")?.addEventListener("click", exportHTMLReport);
 
   // Modal dismiss buttons
   document.querySelectorAll("[data-close]").forEach(btn => {
@@ -2491,6 +2491,12 @@ function drawTheoreticalCharts() {
 // ==========================================================================
 function evaluateHypothesisTest(sim) {
   if (!sim) return;
+
+  // The advanced hypothesis-testing panel was removed from the simplified UI.
+  // Skip updating its old output fields when those elements are not present.
+  const outputIds = ["hypo-sample-size", "hypo-errors", "hypo-qber", "hypo-z", "hypo-p", "hypo-decision"];
+  if (!outputIds.every(id => $(id))) return;
+
   const k = sim.sampleSize;
   const errors = sim.sampleErrors;
   const qHat = sim.sampleQber;
