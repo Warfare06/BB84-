@@ -308,8 +308,7 @@ function initApp() {
   // Canvas setup
   setupChannelCanvas();
   $("open-antenna-sim")?.addEventListener("click", openAntennaSimModal);
-  // Optional antenna controls are initialized only if their setup function exists.
-  if (typeof setupAntennaSimulation === "function") setupAntennaSimulation();
+  setupAntennaSimulation();
 
   updateRoomTitle();
   updateEveUI();
@@ -736,6 +735,153 @@ function selectRandomSample(indexes, fraction = 0.25) {
 // SIMULATOR UI & ACTIONS
 // ==========================================================================
 // Open the parabolic-dish simulation modal.
+// Wire up the live parabolic-dish simulation controls.
+let antennaSetupComplete = false;
+function setupAntennaSimulation() {
+  if (antennaSetupComplete) return;
+  antennaSetupComplete = true;
+
+  const setActive = (containerId, selector, valueAttr, value) => {
+    const container = $(containerId);
+    if (!container) return;
+    container.querySelectorAll(selector).forEach(button => {
+      button.classList.toggle("active", button.getAttribute(valueAttr) === String(value));
+    });
+  };
+
+  const updateTxPreview = () => {
+    const state = $("tx-state-preview");
+    if (state) state.innerHTML = `Prepared Photon: <strong>|${liveTxBit}⟩ (${liveTxBasis === "+" ? (liveTxBit ? "90°" : "0°") + " Rectilinear" : (liveTxBit ? "135°" : "45°") + " Diagonal"})</strong>`;
+    const basis = $("tx-basis-preview");
+    if (basis) basis.innerHTML = `Basis Orientation: <strong>${liveTxBasis} (${liveTxBasis === "+" ? "Rectilinear" : "Diagonal"})</strong>`;
+  };
+
+  $("sender-bit-changer")?.querySelectorAll("[data-bit]").forEach(button => {
+    button.addEventListener("click", () => {
+      liveTxBit = Number(button.dataset.bit) ? 1 : 0;
+      setActive("sender-bit-changer", "[data-bit]", "data-bit", liveTxBit);
+      updateTxPreview();
+    });
+  });
+
+  $("sender-base-changer")?.querySelectorAll("[data-basis]").forEach(button => {
+    button.addEventListener("click", () => {
+      liveTxBasis = button.dataset.basis === "×" ? "×" : "+";
+      setActive("sender-base-changer", "[data-basis]", "data-basis", liveTxBasis);
+      updateTxPreview();
+    });
+  });
+
+  $("receiver-base-changer")?.querySelectorAll("[data-basis]").forEach(button => {
+    button.addEventListener("click", () => {
+      liveRxBasis = button.dataset.basis === "×" ? "×" : "+";
+      setActive("receiver-base-changer", "[data-basis]", "data-basis", liveRxBasis);
+      const preview = $("rx-basis-preview");
+      if (preview) preview.innerHTML = `Your Measurement Basis: <strong>${liveRxBasis} (${liveRxBasis === "+" ? "Rectilinear" : "Diagonal"})</strong>`;
+      const bobBasis = $("det-bob-basis");
+      if (bobBasis) bobBasis.textContent = liveRxBasis;
+    });
+  });
+
+  document.querySelectorAll("[data-view]").forEach(button => {
+    button.addEventListener("click", () => {
+      activeAntennaView = button.dataset.view;
+      document.querySelectorAll("[data-view]").forEach(b => b.classList.toggle("active", b === button));
+      const layout = $("antenna-main-layout");
+      if (layout) layout.className = `antenna-layout view-${activeAntennaView}`;
+      const sender = $("antenna-sender-card");
+      const receiver = $("antenna-receiver-card");
+      if (sender) sender.style.display = activeAntennaView === "receiver" ? "none" : "";
+      if (receiver) receiver.style.display = activeAntennaView === "sender" ? "none" : "";
+    });
+  });
+
+  $("btn-transmit-live-photon")?.addEventListener("click", async () => {
+    const status = $("tx-live-status");
+    if (role !== "Alice") {
+      if (status) status.textContent = "Switch the station role to Alice to transmit a photon.";
+      showToast("Only Alice (Transmitter) can transmit photons.");
+      return;
+    }
+    if (!db) {
+      if (status) status.textContent = "Firebase is not connected. Check the connection status.";
+      showToast("Cannot transmit: Firebase is not connected.");
+      return;
+    }
+    try {
+      if (status) status.textContent = "Transmitting photon…";
+      const payload = {
+        sender: role,
+        senderName: displayName,
+        bit: liveTxBit,
+        basis: liveTxBasis,
+        time: Date.now()
+      };
+      await db.ref(`servers/${room}/live_photons`).push(payload);
+      if (status) status.textContent = `Photon transmitted: bit ${liveTxBit}, basis ${liveTxBasis}. Waiting for Bob…`;
+      showToast("Quantum photon transmitted to Firebase.");
+    } catch (error) {
+      console.error("Photon transmission failed:", error);
+      if (status) status.textContent = `Transmission failed: ${error.message || error}`;
+      showToast("Photon transmission failed. Check Firebase rules.");
+    }
+  });
+
+  $("btn-use-live-key")?.addEventListener("click", () => {
+    if (!liveSiftedKeyBits) {
+      showToast("No sifted key bits available yet.");
+      return;
+    }
+    activeKeyBits = liveSiftedKeyBits;
+    keyBufferOffset = 0;
+    setKeyStatus(`LIVE KEY READY · ${activeKeyBits.length} bits`, "ready");
+    updateKeyReservoirUI();
+    showToast(`Loaded ${activeKeyBits.length} live sifted key bits into chat.`);
+  });
+
+  updateTxPreview();
+  const initialRxPreview = $("rx-basis-preview");
+  if (initialRxPreview) initialRxPreview.innerHTML = `Your Measurement Basis: <strong>${liveRxBasis} (${liveRxBasis === "+" ? "Rectilinear" : "Diagonal"})</strong>`;
+}
+
+function handleIncomingLivePhoton(data) {
+  if (!data || typeof data.bit === "undefined" || !data.basis) return;
+  const senderBit = Number(data.bit) ? 1 : 0;
+  const senderBasis = data.basis === "×" ? "×" : "+";
+  const receiverBasis = liveRxBasis;
+  const matched = senderBasis === receiverBasis;
+  const measuredBit = matched ? senderBit : randomBit();
+
+  const assignText = (id, value) => { const el = $(id); if (el) el.textContent = value; };
+  assignText("det-sender-bit", String(senderBit));
+  assignText("det-sender-basis", senderBasis);
+  assignText("det-bob-basis", receiverBasis);
+  assignText("det-measured-bit", String(measuredBit));
+  assignText("rx-live-status-pill", "Photon detected");
+  const outcome = $("rx-sifting-outcome");
+  if (outcome) {
+    outcome.className = `sifting-banner ${matched ? "success" : "empty"}`;
+    outcome.textContent = matched
+      ? `Bases match (${senderBasis}). Bit ${measuredBit} added to the sifted key.`
+      : `Bases differ (sender ${senderBasis}, receiver ${receiverBasis}). Discard this bit during sifting.`;
+  }
+  if (matched) {
+    liveSiftedKeyBits += String(measuredBit);
+    assignText("live-sifted-key-bits", `${liveSiftedKeyBits.length} bits`);
+    const tape = $("live-sifted-tape");
+    if (tape) tape.textContent = liveSiftedKeyBits.split("").join(" ");
+    const useKey = $("btn-use-live-key");
+    if (useKey) useKey.disabled = false;
+  }
+  assignText("rx-live-status-pill", matched ? "Detected · Basis match" : "Detected · Basis mismatch");
+  const rxStatus = $("rx-live-status-pill");
+  if (rxStatus) rxStatus.className = matched ? "pill-connected" : "pill-waiting";
+  if (role === "Bob" && data.sender === "Alice") {
+    const status = $("tx-live-status");
+    if (status) status.textContent = `Last photon received from Alice: bit ${senderBit}, basis ${senderBasis}.`;
+  }
+}
+
 function openAntennaSimModal() {
   const modal = $("antenna-sim-modal");
   if (!modal) {
@@ -744,10 +890,7 @@ function openAntennaSimModal() {
     return;
   }
   modal.classList.add("open");
-  if (typeof setupAntennaSimulation === "function") {
-    // Optional antenna controls are initialized only if their setup function exists.
   if (typeof setupAntennaSimulation === "function") setupAntennaSimulation();
-  }
 }
 
 function openSimulator() {
